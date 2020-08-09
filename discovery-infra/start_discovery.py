@@ -9,7 +9,6 @@ import os
 import pprint
 import time
 import uuid
-import subprocess as sp
 from functools import partial
 from distutils.dir_util import copy_tree
 from pathlib import Path
@@ -43,7 +42,7 @@ def fill_tfvars(
     nodes_ips = _find_free_ips(
         machine_cidr=nodes_details['machine_cidr'],
         start_ip=IPNetwork(nodes_details['machine_cidr']).ip + 10,
-        required_ips=master_count + nodes_details['worker_count']
+        num_required_ips=master_count + nodes_details['worker_count']
     )
 
     tfvars["image_path"] = image_path
@@ -58,32 +57,38 @@ def fill_tfvars(
         json.dump(tfvars, _file)
 
 
-def _find_free_ips(machine_cidr, start_ip, required_ips):
-    if 0 >= required_ips:
+def _find_free_ips(machine_cidr, start_ip, num_required_ips):
+    if 0 >= num_required_ips:
         return []
 
     free_ips = []
-    for ip in IPNetwork(machine_cidr).iter_hosts():
-        if start_ip > ip:
+    for ip in _iterate_network_ips(machine_cidr, start_ip):
+        if _is_alive(ip):
             continue
 
-        ipv4 = str(ip.ipv4())
-        if _is_alive(ipv4):
-            continue
-
-        free_ips.append(ipv4)
-        if len(free_ips) == required_ips:
+        free_ips.append(ip)
+        if len(free_ips) == num_required_ips:
             break
+
+    if num_required_ips > len(free_ips):
+        raise RuntimeError(
+            f'found {len(free_ips)}/{num_required_ips} free ips '
+            f'in cidr {machine_cidr}'
+        )
 
     return free_ips
 
 
+def _iterate_network_ips(machine_cidr, start_ip=None):
+    for ip in IPNetwork(machine_cidr).iter_hosts():
+        if start_ip and start_ip > ip:
+            continue
+
+        yield str(ip.ipv4())
+
+
 def _is_alive(ip):
-    p = sp.Popen(
-        ['/bin/ping', '-c1', '-w1', '-i0.2', ip],
-        stdout=sp.PIPE
-    )
-    return '64 bytes from' in p.stdout.read().decode()
+    return '64 bytes from' in utils.run_command(f'/bin/ping -c1 -w1 -i0.2 {ip}')
 
 
 # Run make run terraform -> creates vms
@@ -185,7 +190,7 @@ def _get_vips_ips():
     ips = _find_free_ips(
         machine_cidr=args.vm_network_cidr,
         start_ip=IPNetwork(args.vm_network_cidr).ip + 100,
-        required_ips=2
+        num_required_ips=2
     )
     return ips[0], ips[1]
 
@@ -204,25 +209,16 @@ def _cluster_create_params():
     return params
 
 
-def _find_free_network_cidr(start_network_cidr):
-    net_cidr = IPNetwork(start_network_cidr)
-    while _is_cidr_machine_exist(str(net_cidr)):
-        net_cidr += 1
-    return str(net_cidr)
+def _find_free_cidr_machine(start_cidr_machine):
+    cidr_machine = IPNetwork(start_cidr_machine)
+    while _is_cidr_machine_exist(str(cidr_machine)):
+        cidr_machine += 1
+    return str(cidr_machine)
 
 
 def _is_cidr_machine_exist(cidr_machine):
-    p = sp.Popen(
-        ['/usr/sbin/ip', 'route', 'show', cidr_machine],
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-    )
-
-    err = p.stderr.read().decode().strip()
-    if err:
-        raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
-
-    is_exist = bool(p.stdout.read().decode().strip())
+    cmd_output = utils.run_command(f'/usr/sbin/ip route show {cidr_machine}')
+    is_exist = bool(cmd_output)
     return is_exist
 
 
@@ -236,17 +232,18 @@ def _find_free_network_bridge():
 
 
 def _is_bridge_exist(bridge):
-    p = sp.Popen(
-        ['/usr/sbin/ip', 'link', 'show', bridge],
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
+
+    def raise_error_if_occurred(cmd, out, err):
+        if err and 'does not exist' not in err:
+            raise RuntimeError(f'cmd {cmd} exited with an error: {err}')
+        return out
+
+    cmd_output = utils.run_command(
+        f'/usr/sbin/ip link show {bridge}',
+        shell=False,
+        callback=raise_error_if_occurred
     )
-
-    err = p.stderr.read().decode().strip()
-    if err and 'does not exist' not in err:
-        raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
-
-    is_exist = bool(p.stdout.read().decode().strip())
+    is_exist = bool(cmd_output)
     return is_exist
 
 
@@ -376,8 +373,8 @@ def main():
         args.base_dns_domain = args.managed_dns_domains.split(":")[0]
 
     if not args.vm_network_cidr:
-        args.vm_network_cidr = _find_free_network_cidr(
-            start_network_cidr='192.168.126.0/24'
+        args.vm_network_cidr = _find_free_cidr_machine(
+            start_cidr_machine='192.168.126.0/24'
         )
 
     if not args.network_bridge:

@@ -16,17 +16,35 @@ from retry import retry
 conn = libvirt.open("qemu:///system")
 
 
-def run_command(command, shell=False):
+def run_command(command, shell=False, callback=None):
     command = command if shell else shlex.split(command)
     process = subprocess.run(
         command,
         shell=shell,
-        check=True,
         stdout=subprocess.PIPE,
-        universal_newlines=True,
+        stderr=subprocess.PIPE,
+        universal_newlines=True
     )
-    output = process.stdout.strip()
-    return output
+
+    def io_buffer_to_str(buf):
+        if hasattr(buf, 'read'):
+            buf = buf.read().decode()
+        return buf
+
+    out = io_buffer_to_str(process.stdout).strip()
+    err = io_buffer_to_str(process.stderr).strip()
+
+    if callback is None:
+        callback = raise_error_if_occurred
+
+    return callback(process.args, out, err)
+
+
+def raise_error_if_occurred(cmd, out, err):
+    if err:
+        raise RuntimeError(f'cmd {cmd} exited with an error: {err}')
+
+    return out
 
 
 def run_command_with_output(command):
@@ -254,4 +272,4 @@ def recreate_folder(folder, on_create=None):
 
     if on_create is None:
         return
-    on_create(folder)
+    return on_create(folder)

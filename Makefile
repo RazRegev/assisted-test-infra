@@ -201,7 +201,7 @@ deploy_monitoring: bring_assisted_service
 	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE)
 
 delete_all_virsh_resources: destroy_nodes delete_minikube
-	skipper run 'discovery-infra/delete_nodes.py -ns $(NAMESPACE) -a' $(SKIPPER_PARAMS)
+	skipper run 'discovery-infra/delete_nodes.py -ns all -a' $(SKIPPER_PARAMS)
 
 #######
 # ISO #

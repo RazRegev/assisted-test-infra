@@ -13,12 +13,12 @@ from logger import log
 
 
 # Try to delete cluster if assisted-service is up and such cluster exists
-def try_to_delete_cluster(tfvars):
+def try_to_delete_cluster(namespace, tfvars):
     try:
         cluster_id = tfvars.get("cluster_inventory_id")
         if cluster_id:
             client = assisted_service_api.create_client(
-                args.namespace, args.inventory_url, wait_for_url=False
+                namespace, args.inventory_url, wait_for_url=False
             )
             client.delete_cluster(cluster_id=cluster_id)
     # TODO add different exception validations
@@ -57,9 +57,30 @@ def delete_all():
     virsh_cleanup.clean_virsh_resources(virsh_cleanup.DEFAULT_SKIP_LIST, None)
 
 
+def get_namespaces():
+    cmd_output = utils.run_command(
+        'kubectl get namespace -o name --selector name'
+    )
+
+    namespaces = []
+    for line in cmd_output.splitlines():
+        _, ns = line.decode().strip().split('/', 1)
+        namespaces.append(ns)
+
+    return namespaces
+
+
 def main():
+    if args.namespace == 'all':
+        for namespace in get_namespaces():
+            delete_cluster_by_namespace(namespace)
+    else:
+        delete_cluster_by_namespace(args.namespace)
+
+
+def delete_cluster_by_namespace(namespace):
     cluster_name = args.cluster_name or consts.CLUSTER_PREFIX
-    cluster_name += f'-{args.namespace}'
+    cluster_name += f'-{namespace}'
 
     if args.delete_all:
         delete_all()
@@ -67,7 +88,7 @@ def main():
         try:
             tfvars = utils.get_tfvars(cluster_name)
             if not args.only_nodes:
-                try_to_delete_cluster(tfvars)
+                try_to_delete_cluster(namespace, tfvars)
             delete_nodes(cluster_name, tfvars)
         except:
             log.exception("Failed to delete nodes")
