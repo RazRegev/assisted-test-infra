@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os
 import argparse
 
 import assisted_service_api
@@ -107,11 +108,14 @@ def run_install_flow(client, cluster_id, kubeconfig_path, pull_secret):
 
 
 def main():
+    cluster_name = args.cluster_name or consts.CLUSTER_PREFIX
+    cluster_name += f'-{args.namespace}'
+
     _verify_kube_download_folder(args.kubeconfig_path)
     log.info("Creating assisted service client")
     # if not cluster id is given, reads it from latest run
     if not args.cluster_id:
-        args.cluster_id = utils.get_tfvars()["cluster_inventory_id"]
+        args.cluster_id = utils.get_tfvars(cluster_name)["cluster_inventory_id"]
     client = assisted_service_api.create_client(args.namespace, wait_for_url=False)
     run_install_flow(
         client=client,
@@ -142,6 +146,12 @@ if __name__ == "__main__":
         help="Namespace to use",
         type=str,
         default="assisted-installer",
+    )
+    parser.add_argument(
+        '-cn',
+        '--cluster-name',
+        help='Cluster name',
+        required=False,
     )
     args = parser.parse_args()
     main()

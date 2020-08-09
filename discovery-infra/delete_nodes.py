@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import os
 import argparse
 import shutil
 
@@ -26,18 +27,20 @@ def try_to_delete_cluster(tfvars):
 
 
 # Runs terraform destroy and then cleans it with virsh cleanup to delete everything relevant
-def delete_nodes(tfvars):
+def delete_nodes(cluster_name, tfvars):
+    tf_folder = os.path.join(consts.TF_FOLDER, cluster_name)
+
     try:
         log.info("Start running terraform delete")
         cmd = (
             "cd %s  && terraform destroy -auto-approve "
             "-input=false -state=terraform.tfstate -state-out=terraform.tfstate "
-            "-var-file=terraform.tfvars.json" % consts.TF_FOLDER
+            "-var-file=terraform.tfvars.json" % tf_folder
         )
         utils.run_command_with_output(cmd)
     except:
-        log.exception("Failed to run terraform delete, deleting %s", consts.TF_FOLDER)
-        shutil.rmtree(consts.TF_FOLDER)
+        log.exception("Failed to run terraform delete, deleting %s", tf_folder)
+        shutil.rmtree(tf_folder)
     finally:
         virsh_cleanup.clean_virsh_resources(
             virsh_cleanup.DEFAULT_SKIP_LIST,
@@ -55,14 +58,17 @@ def delete_all():
 
 
 def main():
+    cluster_name = args.cluster_name or consts.CLUSTER_PREFIX
+    cluster_name += f'-{args.namespace}'
+
     if args.delete_all:
         delete_all()
     else:
         try:
-            tfvars = utils.get_tfvars()
+            tfvars = utils.get_tfvars(cluster_name)
             if not args.only_nodes:
                 try_to_delete_cluster(tfvars)
-            delete_nodes(tfvars)
+            delete_nodes(cluster_name, tfvars)
         except:
             log.exception("Failed to delete nodes")
 
@@ -97,6 +103,12 @@ if __name__ == "__main__":
         help="Delete under this namespace",
         type=str,
         default="assisted-installer",
+    )
+    parser.add_argument(
+        '-cn',
+        '--cluster-name',
+        help='Cluster name',
+        required=False,
     )
     args = parser.parse_args()
     main()
