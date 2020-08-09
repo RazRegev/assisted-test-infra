@@ -8,9 +8,17 @@ PULL_PARAM=$(shell if [ "${CONTAINER_COMMAND}" = "podman" ];then echo "--pull-al
 
 SKIPPER_PARAMS ?= -i
 
+# global env
+NAMESPACE := $(or $(NAMESPACE),assisted-installer)
+HOST_IP := $(or $(HOST_IP),$(shell bash scripts/utils.sh get_main_ip))
+
 # bm-inventory
 BMI_BRANCH := $(or $(BMI_BRANCH), "master")
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/bm-inventory:latest)
+INVENTORY_START_PORT := $(or $(INVENTORY_START_PORT),6000)
+
+# ocp-metal-ui
+UI_START_PORT := $(or $(UI_START_PORT),6008)
 
 # nodes params
 ISO := $(or $(ISO), "") # ISO should point to a file that has the '.iso' extension. Otherwise deploy will fail!
