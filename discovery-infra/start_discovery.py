@@ -204,6 +204,28 @@ def _cluster_create_params():
     return params
 
 
+def _find_free_network_cidr(start_network_cidr):
+    net_cidr = IPNetwork(start_network_cidr)
+    while _is_cidr_machine_exist(str(net_cidr)):
+        net_cidr += 1
+    return str(net_cidr)
+
+
+def _is_cidr_machine_exist(cidr_machine):
+    p = sp.Popen(
+        ['/usr/sbin/ip', 'route', 'show', cidr_machine],
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+    )
+    err = p.stderr.read().decode().strip()
+    if not err:
+        return True
+    print(err)
+    if 'does not exist' in err:
+        return False
+    raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
+
+
 def _find_free_network_bridge():
     i = 0
     bridge = f'tt{i}'
@@ -216,27 +238,6 @@ def _find_free_network_bridge():
 def _is_bridge_exist(bridge):
     p = sp.Popen(
         ['/usr/sbin/ip', 'link', 'show', bridge],
-        stdout=sp.PIPE,
-        stderr=sp.PIPE,
-    )
-    err = p.stderr.read().decode().strip()
-    if not err:
-        return True
-    elif 'does not exist' in err:
-        return False
-    raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
-
-
-def _find_free_network_cidr(start_network_cidr):
-    net_cidr = IPNetwork(start_network_cidr)
-    while _is_cidr_machine_exist(str(net_cidr)):
-        net_cidr += 1
-    return str(net_cidr)
-
-
-def _is_cidr_machine_exist(cidr_machine):
-    p = sp.Popen(
-        ['/usr/sbin/ip', 'route', 'show', cidr_machine],
         stdout=sp.PIPE,
         stderr=sp.PIPE,
     )
