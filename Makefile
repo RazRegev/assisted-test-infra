@@ -144,7 +144,7 @@ set_dns:
 	scripts/assisted_deployment.sh set_dns
 
 deploy_ui: start_minikube
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_ui.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) UI_PORT=$(shell bash scripts/utils.sh get_service_port ocp-metal-ui $(NAMESPACE) $(HOST_IP) $(UI_START_PORT)) scripts/deploy_ui.sh
 
 test_ui: deploy_ui
 	DEPLOY_TAG=$(DEPLOY_TAG) PULL_SECRET=${PULL_SECRET} scripts/test_ui.sh
@@ -189,7 +189,7 @@ redeploy_nodes_with_install: destroy_nodes deploy_nodes_with_install
 
 deploy_bm_inventory: start_minikube bring_bm_inventory
 	mkdir -p bm-inventory/build
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_bm_inventory.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) INVENTORY_PORT=$(shell bash scripts/utils.sh get_service_port bm-inventory $(NAMESPACE) $(HOST_IP) $(INVENTORY_START_PORT)) scripts/deploy_bm_inventory.sh
 
 bring_bm_inventory:
 	@if cd bm-inventory >/dev/null 2>&1; then git fetch --all && git reset --hard origin/$(BMI_BRANCH); else git clone --branch $(BMI_BRANCH) https://github.com/filanov/bm-inventory;fi
