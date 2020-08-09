@@ -218,9 +218,9 @@ def _is_cidr_machine_exist(cidr_machine):
         stderr=sp.PIPE,
     )
     err = p.stderr.read().decode().strip()
+    print(err)
     if not err:
         return True
-    print(err)
     if 'does not exist' in err:
         return False
     raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
