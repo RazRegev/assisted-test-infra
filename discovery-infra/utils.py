@@ -116,10 +116,12 @@ def get_cluster_hosts_with_mac(client, cluster_id, macs):
     return [client.get_host_by_mac(cluster_id, mac) for mac in macs]
 
 
-def get_tfvars():
-    if not os.path.exists(consts.TFVARS_JSON_FILE):
-        raise Exception("%s doesn't exists" % consts.TFVARS_JSON_FILE)
-    with open(consts.TFVARS_JSON_FILE) as _file:
+def get_tfvars(cluster_name):
+    tf_folder = os.path.join(consts.TF_FOLDER, cluster_name)
+    tf_json_file = os.path.join(tf_folder, consts.TFVARS_JSON_NAME)
+    if not os.path.exists(tf_json_file):
+        raise Exception("%s doesn't exists" % tf_json_file)
+    with open(tf_json_file) as _file:
         tfvars = json.load(_file)
     return tfvars
 
@@ -243,8 +245,13 @@ def file_exists(file_path):
     return Path(file_path).exists()
 
 
-def recreate_folder(folder):
+def recreate_folder(folder, on_create=None):
     if os.path.exists(folder):
         shutil.rmtree(folder)
+
     os.makedirs(folder, exist_ok=True)
-    run_command("chmod ugo+rx %s" % folder)
+    run_command("chmod -R ugo+rx %s" % folder)
+
+    if on_create is None:
+        return
+    on_create(folder)

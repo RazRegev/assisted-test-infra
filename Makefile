@@ -30,9 +30,9 @@ MASTER_DISK ?= 21474836480
 NAMESPACE := $(or $(NAMESPACE),assisted-installer)
 BASE_DNS_DOMAINS := $(or $(BASE_DNS_DOMAINS), "")
 BASE_DOMAIN := $(or $(BASE_DOMAIN),redhat.com)
-NETWORK_CIDR := $(or $(NETWORK_CIDR),"192.168.126.0/24")
-NETWORK_NAME := $(or $(NETWORK_NAME), test-infra-net)
-NETWORK_BRIDGE := $(or $(NETWORK_BRIDGE), tt0)
+NETWORK_CIDR := $(or $(NETWORK_CIDR), "")
+NETWORK_NAME := $(or $(NETWORK_NAME), test-infra-net-$(NAMESPACE))
+NETWORK_BRIDGE := $(or $(NETWORK_BRIDGE), "")
 NETWORK_MTU := $(or $(NETWORK_MTU), 1500)
 PROXY_URL := $(or $(PROXY_URL), "")
 RUN_WITH_VIPS := $(or $(RUN_WITH_VIPS), "yes")
@@ -104,10 +104,10 @@ copy_terraform_files:
 	cp -r terraform_files/* build/terraform/;\
 
 run_terraform: copy_terraform_files
-	skipper make _run_terraform $(SKIPPER_PARAMS)
+	skipper make _run_terraform CLUSTER_NAME=$(CLUSTER_NAME) $(SKIPPER_PARAMS)
 
 _run_terraform:
-		cd build/terraform/ && \
+		cd build/terraform/$(CLUSTER_NAME) && \
 		terraform init -plugin-dir=/root/.terraform.d/plugins/ && \
 		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform.tfvars.json
 

@@ -9,8 +9,11 @@ import os
 import pprint
 import time
 import uuid
+import subprocess as sp
+from functools import partial
 from distutils.dir_util import copy_tree
 from pathlib import Path
+from netaddr import IPNetwork
 
 import bm_inventory_api
 import consts
@@ -19,68 +22,111 @@ import utils
 import waiting
 from logger import log
 
-
 # Creates ip list, if will be needed in any other place, please move to utils
 def _create_ip_address_list(node_count, starting_ip_addr):
     return [str(ipaddress.ip_address(starting_ip_addr) + i) for i in range(node_count)]
 
 
 # Filling tfvars json files with terraform needed variables to spawn vms
-def fill_tfvars(image_path, storage_path, master_count, nodes_details):
-    if not os.path.exists(consts.TFVARS_JSON_FILE):
-        Path(consts.TF_FOLDER).mkdir(parents=True, exist_ok=True)
-        copy_tree(consts.TF_TEMPLATE, consts.TF_FOLDER)
-
-    with open(consts.TFVARS_JSON_FILE) as _file:
+def fill_tfvars(
+        image_path,
+        storage_path,
+        master_count,
+        nodes_details,
+        tf_folder
+        ):
+    tfvars_json_file = os.path.join(tf_folder, consts.TFVARS_JSON_NAME)
+    with open(tfvars_json_file) as _file:
         tfvars = json.load(_file)
-    master_starting_ip = str(
-        ipaddress.ip_address(
-            ipaddress.IPv4Network(nodes_details["machine_cidr"]).network_address
-        )
-        + 10
+
+    master_count = min(master_count, consts.NUMBER_OF_MASTERS)
+    nodes_ips = _find_free_ips(
+        machine_cidr=nodes_details['machine_cidr'],
+        start_ip=IPNetwork(nodes_details['machine_cidr']).ip + 10,
+        required_ips=master_count + nodes_details['worker_count']
     )
-    worker_starting_ip = str(
-        ipaddress.ip_address(
-            ipaddress.IPv4Network(nodes_details["machine_cidr"]).network_address
-        )
-        + 10
-        + int(tfvars["master_count"])
-    )
+
     tfvars["image_path"] = image_path
-    tfvars["master_count"] = min(master_count, consts.NUMBER_OF_MASTERS)
-    tfvars["libvirt_master_ips"] = _create_ip_address_list(
-        min(master_count, consts.NUMBER_OF_MASTERS), starting_ip_addr=master_starting_ip
-    )
+    tfvars["master_count"] = master_count
+    tfvars['libvirt_master_ips'] = nodes_ips[:master_count]
+    tfvars['libvirt_worker_ips'] = nodes_ips[master_count:]
     tfvars["api_vip"] = _get_vips_ips()[0]
-    tfvars["libvirt_worker_ips"] = _create_ip_address_list(
-        nodes_details["worker_count"], starting_ip_addr=worker_starting_ip
-    )
     tfvars["libvirt_storage_pool_path"] = storage_path
     tfvars.update(nodes_details)
 
-    with open(consts.TFVARS_JSON_FILE, "w") as _file:
+    with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
 
 
+def _find_free_ips(machine_cidr, start_ip, required_ips):
+    if 0 >= required_ips:
+        return []
+
+    free_ips = []
+    for ip in IPNetwork(machine_cidr).iter_hosts():
+        if start_ip > ip:
+            continue
+
+        ipv4 = str(ip.ipv4())
+        if _is_alive(ipv4):
+            continue
+
+        free_ips.append(ipv4)
+        if len(free_ips) == required_ips:
+            break
+
+    return free_ips
+
+
+def _is_alive(ip):
+    p = sp.Popen(
+        ['/bin/ping', '-c1', '-w1', '-i0.2', ip],
+        stdout=sp.PIPE
+    )
+    return '64 bytes from' in p.stdout.read().decode()
+
+
 # Run make run terraform -> creates vms
-def create_nodes(image_path, storage_path, master_count, nodes_details):
+def create_nodes(
+        cluster_name,
+        image_path,
+        storage_path,
+        master_count,
+        nodes_details,
+        tf_folder
+        ):
     log.info("Creating tfvars")
-    fill_tfvars(image_path, storage_path, master_count, nodes_details)
+    fill_tfvars(
+        image_path=image_path,
+        storage_path=storage_path,
+        master_count=master_count,
+        nodes_details=nodes_details,
+        tf_folder=tf_folder
+    )
     log.info("Start running terraform")
-    cmd = "make _run_terraform"
+    cmd = f'make _run_terraform CLUSTER_NAME={cluster_name}'
     return utils.run_command(cmd)
 
 
 # Starts terraform nodes creation, waits till all nodes will get ip and will move to known status
 def create_nodes_and_wait_till_registered(
-    inventory_client, cluster, image_path, storage_path, master_count, nodes_details
-):
+        cluster_name,
+        inventory_client,
+        cluster,
+        image_path,
+        storage_path,
+        master_count,
+        nodes_details,
+        tf_folder
+        ):
     nodes_count = master_count + nodes_details["worker_count"]
     create_nodes(
-        image_path,
+        cluster_name=cluster_name,
+        image_path=image_path,
         storage_path=storage_path,
         master_count=master_count,
         nodes_details=nodes_details,
+        tf_folder=tf_folder
     )
 
     # TODO: Check for only new nodes
@@ -136,14 +182,10 @@ def set_cluster_vips(client, cluster_id):
 
 
 def _get_vips_ips():
-    network_subnet_starting_ip = str(
-        ipaddress.ip_address(
-            ipaddress.IPv4Network(args.vm_network_cidr).network_address
-        )
-        + 100
-    )
-    ips = _create_ip_address_list(
-        2, starting_ip_addr=str(ipaddress.ip_address(network_subnet_starting_ip))
+    ips = _find_free_ips(
+        machine_cidr=args.vm_network_cidr,
+        start_ip=IPNetwork(args.vm_network_cidr).ip + 100,
+        required_ips=2
     )
     return ips[0], ips[1]
 
@@ -161,6 +203,50 @@ def _cluster_create_params():
     }
     return params
 
+
+def _find_free_network_bridge():
+    i = 0
+    bridge = f'tt{i}'
+    while _is_bridge_exist(bridge):
+        i += 1
+        bridge = f'tt{i}'
+    return bridge
+
+
+def _is_bridge_exist(bridge):
+    p = sp.Popen(
+        ['/usr/sbin/ip', 'link', 'show', bridge],
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+    )
+    _raise_error_if_occurred(p)
+    is_exist = bool(p.stdout.read().decode().strip())
+    return is_exist
+
+
+def _find_free_network_cidr(start_network_cidr):
+    net_cidr = IPNetwork(start_network_cidr)
+    while _is_cidr_machine_exist(str(net_cidr)):
+        net_cidr += 1
+    return str(net_cidr)
+
+
+def _is_cidr_machine_exist(cidr_machine):
+    p = sp.Popen(
+        ['/usr/sbin/ip', 'route', 'show', cidr_machine],
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+    )
+    _raise_error_if_occurred(p)
+    is_exist = bool(p.stdout.read().decode().strip())
+    return is_exist
+
+
+def _raise_error_if_occurred(p):
+    err = p.stderr.read().decode().strip()
+    if not err:
+        return
+    raise RuntimeError('cmd %s exited with error: %s', p.args, err)
 
 # convert params from args to terraform tfvars
 def _create_node_details(cluster_name):
@@ -211,17 +297,26 @@ def validate_dns(client, cluster_id):
 
 # Create vms from downloaded iso that will connect to bm-inventory and register
 # If install cluster is set , it will run install cluster command and wait till all nodes will be in installing status
-def nodes_flow(client, cluster_name, cluster):
+def nodes_flow(client, cluster_name, cluster, image_path):
     nodes_details = _create_node_details(cluster_name)
     if cluster:
         nodes_details["cluster_inventory_id"] = cluster.id
+
+    tf_folder = os.path.join(consts.TF_FOLDER, cluster_name)
+    utils.recreate_folder(
+        tf_folder,
+        on_create=partial(copy_tree, consts.TF_TEMPLATE)
+    )
+
     create_nodes_and_wait_till_registered(
+        cluster_name=cluster_name,
         inventory_client=client,
         cluster=cluster,
-        image_path=args.image or consts.IMAGE_PATH,
+        image_path=image_path,
         storage_path=args.storage_path,
         master_count=args.master_count,
         nodes_details=nodes_details,
+        tf_folder=tf_folder
     )
     if client:
         cluster_info = client.cluster_get(cluster.id)
@@ -266,15 +361,29 @@ def nodes_flow(client, cluster_name, cluster):
 def main():
     client = None
     cluster = {}
-    random_postfix = str(uuid.uuid4())[:8]
-    cluster_name = args.cluster_name or consts.CLUSTER_PREFIX + random_postfix
+
+    cluster_name = args.cluster_name or consts.CLUSTER_PREFIX
+    cluster_name += f'-{args.namespace}'
+    log.debug('cluster name: %s', cluster_name)
+
+    image_folder = os.path.join(consts.BASE_IMAGE_FOLDER, cluster_name)
+    image_path = os.path.join(image_folder, consts.IMAGE_NAME)
+    log.debug('image folder: %s', image_folder)
+
     if args.managed_dns_domains:
         args.base_dns_domain = args.managed_dns_domains.split(":")[0]
-        if args.cluster_name:
-            cluster_name = "%s-%s" % (args.cluster_name, random_postfix)
+
+    if not args.vm_network_cidr:
+        args.vm_network_cidr = _find_free_network_cidr(
+            start_network_cidr='192.168.126.0/24'
+        )
+
+    if not args.network_bridge:
+        args.network_bridge = _find_free_network_bridge()
+
     # If image is passed, there is no need to create cluster and download image, need only to spawn vms with is image
     if not args.image:
-        utils.recreate_folder(consts.IMAGE_FOLDER)
+        utils.recreate_folder(image_folder)
         client = bm_inventory_api.create_client(args.namespace, args.inventory_url)
         if args.cluster_id:
             cluster = client.cluster_get(cluster_id=args.cluster_id)
@@ -285,14 +394,16 @@ def main():
 
         client.generate_and_download_image(
             cluster_id=cluster.id,
-            image_path=consts.IMAGE_PATH,
+            image_path=image_path,
             ssh_key=args.ssh_key,
             proxy_url=args.proxy_url,
         )
 
     # Iso only, cluster will be up and iso downloaded but vm will not be created
     if not args.iso_only:
-        nodes_flow(client, cluster_name, cluster)
+        nodes_flow(client, cluster_name, cluster, args.image or image_path)
+
+
 
 
 if __name__ == "__main__":
@@ -390,7 +501,7 @@ if __name__ == "__main__":
         "--vm-network-cidr",
         help="Vm network cidr",
         type=str,
-        default="192.168.126.0/24",
+        required=False,
     )
     parser.add_argument(
         "-nN", "--network-name", help="Network name", type=str, default="test-infra-net"
@@ -405,7 +516,11 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
-        "-nB", "--network-bridge", help="Network bridge to use", type=str, default="tt0"
+        '-nB',
+        '--network-bridge',
+        help='Network bridge to use',
+        type=str,
+        required=False
     )
     parser.add_argument(
         "-iO",
