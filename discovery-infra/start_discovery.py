@@ -220,8 +220,6 @@ def _is_cidr_machine_exist(cidr_machine):
     err = p.stderr.read().decode().strip()
     if not err:
         return True
-    elif 'does not exist' in err:
-        return False
     raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
 
     #is_exist = bool(p.stdout.read().decode().strip())
