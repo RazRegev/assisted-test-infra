@@ -147,7 +147,7 @@ set_dns:
 	scripts/assisted_deployment.sh set_dns
 
 deploy_ui: start_minikube
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_ui.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) UI_PORT=$(shell bash scripts/utils.sh get_service_port ocp-metal-ui $(NAMESPACE) $(HOST_IP) $(UI_START_PORT)) scripts/deploy_ui.sh
 
 test_ui: deploy_ui
 	DEPLOY_TAG=$(DEPLOY_TAG) PULL_SECRET=${PULL_SECRET} scripts/test_ui.sh
@@ -192,7 +192,7 @@ redeploy_nodes_with_install: destroy_nodes deploy_nodes_with_install
 
 deploy_assisted_service: start_minikube bring_assisted_service
 	mkdir -p assisted-service/build
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_assisted_service.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) SERVICE_PORT=$(shell bash scripts/utils.sh get_service_port bm-inventory $(NAMESPACE) $(HOST_IP) $(SERVICE_START_PORT)) scripts/deploy_assisted_service.sh
 
 bring_assisted_service:
 	@if cd assisted-service >/dev/null 2>&1; then git fetch --all && git reset --hard origin/$(SERVICE_BRANCH); else git clone --branch $(SERVICE_BRANCH) $(SERVICE_REPO);fi
