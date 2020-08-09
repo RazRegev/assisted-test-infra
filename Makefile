@@ -12,6 +12,15 @@ SKIPPER_PARAMS ?= -i
 SERVICE_BRANCH := $(or $(SERVICE_BRANCH), "master")
 SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/openshift/assisted-service")
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
+SERVICE_START_PORT := $(or $(SERVICE_START_PORT),6000)
+
+# global env
+NAMESPACE := $(or $(NAMESPACE),assisted-installer)
+HOST_IP := $(or $(HOST_IP),$(shell bash scripts/utils.sh get_main_ip))
+
+
+# ocp-metal-ui
+UI_START_PORT := $(or $(UI_START_PORT),6008)
 
 # nodes params
 ISO := $(or $(ISO), "") # ISO should point to a file that has the '.iso' extension. Otherwise deploy will fail!
