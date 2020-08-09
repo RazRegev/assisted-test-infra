@@ -217,13 +217,13 @@ def _is_cidr_machine_exist(cidr_machine):
         stdout=sp.PIPE,
         stderr=sp.PIPE,
     )
-    err = p.stderr.read().decode().strip()
-    if not err:
-        return True
-    raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
 
-    #is_exist = bool(p.stdout.read().decode().strip())
-    #return is_exist
+    err = p.stderr.read().decode().strip()
+    if err:
+        raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
+
+    is_exist = bool(p.stdout.read().decode().strip())
+    return is_exist
 
 
 def _find_free_network_bridge():
@@ -241,15 +241,13 @@ def _is_bridge_exist(bridge):
         stdout=sp.PIPE,
         stderr=sp.PIPE,
     )
-    err = p.stderr.read().decode().strip()
-    if not err:
-        return True
-    elif 'does not exist' in err:
-        return False
-    raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
 
-    #is_exist = bool(p.stdout.read().decode().strip())
-    #return is_exist
+    err = p.stderr.read().decode().strip()
+    if err and 'does not exist' not in err:
+        raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
+
+    is_exist = bool(p.stdout.read().decode().strip())
+    return is_exist
 
 
 # convert params from args to terraform tfvars
