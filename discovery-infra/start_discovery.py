@@ -20,6 +20,7 @@ import install_cluster
 import utils
 import waiting
 from logger import log
+from oc_login import oc_login
 
 # Creates ip list, if will be needed in any other place, please move to utils
 def _create_ip_address_list(node_count, starting_ip_addr):
@@ -380,10 +381,17 @@ def main():
     if not args.network_bridge:
         args.network_bridge = _find_free_network_bridge()
 
+    if args.target in ('oc', 'oc-ingress'):
+        oc_login(args.oc_server, args.oc_token)
+
     # If image is passed, there is no need to create cluster and download image, need only to spawn vms with is image
     if not args.image:
         utils.recreate_folder(image_folder)
-        client = assisted_service_api.create_client(args.namespace, args.inventory_url)
+        client = assisted_service_api.create_client(
+            namespace=args.namespace,
+            inventory_url=args.inventory_url,
+            target=args.target
+        )
         if args.cluster_id:
             cluster = client.cluster_get(cluster_id=args.cluster_id)
         else:
@@ -401,8 +409,6 @@ def main():
     # Iso only, cluster will be up and iso downloaded but vm will not be created
     if not args.iso_only:
         nodes_flow(client, cluster_name, cluster, args.image or image_path)
-
-
 
 
 if __name__ == "__main__":
@@ -558,7 +564,25 @@ if __name__ == "__main__":
     parser.add_argument(
         "-id", "--cluster-id", help="Cluster id to install", type=str, default=None
     )
-
+    parser.add_argument(
+        '-t',
+        '--target',
+        help='Target inventory deployment (minikube/oc/oc-ingress)',
+        type=utils.validate_target,
+        default='minikube',
+    )
+    parser.add_argument(
+        '--oc-token',
+        help='Token for oc target that will be used for login',
+        type=str,
+        required=False
+    )
+    parser.add_argument(
+        '--oc-server',
+        help='Server for oc target that will be used for login',
+        type=str,
+        required=False
+    )
     args = parser.parse_args()
     if not args.pull_secret and args.install_cluster:
         raise Exception("Can't install cluster without pull secret, please provide one")

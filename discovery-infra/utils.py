@@ -59,11 +59,16 @@ def run_command_with_output(command):
 
 
 @retry(tries=5, delay=3, backoff=2)
-def get_service_url_with_retries(service_name, namespace):
-    return get_service_url(service_name, namespace)
+def get_service_url_with_retries(service_name, namespace, target):
+    return get_service_url(service_name, namespace, target)
 
 
-def get_service_url(service_name, namespace):
+def get_service_url(service_name, namespace, target):
+    f = _get_local_service_url if target == 'minikube' else _get_remote_service_url
+    return f(service_name, namespace)
+
+
+def _get_local_service_url(service_name, namespace):
     try:
         log.info(f"Getting {service_name} URL in {namespace} namespace")
         cmd = f"minikube -n {namespace} service {service_name} --url"
@@ -71,6 +76,26 @@ def get_service_url(service_name, namespace):
     except:
         log.error(f"Failed to get {service_name} URL in {namespace} namespace")
         raise
+
+
+def _get_remote_service_url(service, namespace):
+    cmd_output = run_command(
+        'kubectl get route '
+        f'--namespace {namespace} '
+        f'--field-selector spec.to.name=bm-inventory '
+        '--output=json'
+    )
+
+    routes = json.loads(cmd_output)['items']
+
+    if len(routes) != 1:
+        raise RuntimeError(
+            f'unable to get remote route for service {service}'
+            f'(found {len(routes)} routes, needs 1)'
+        )
+
+    host = routes[0]['spec']['host']
+    return f'http://{host}'
 
 
 def get_network_leases(network_name):
@@ -273,3 +298,10 @@ def recreate_folder(folder, on_create=None):
     if on_create is None:
         return
     return on_create(folder)
+
+
+def validate_target(target):
+    target = target.lower()
+    if target not in ('minikube', 'oc', 'oc-ingress'):
+        raise ValueError(f'invalid target {target}')
+    return target

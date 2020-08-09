@@ -9,6 +9,7 @@ import consts
 import utils
 import waiting
 from logger import log
+from oc_login import oc_login
 
 
 # Verify folder to download kubeconfig exists. If will be needed in other places move to utils
@@ -116,7 +117,15 @@ def main():
     # if not cluster id is given, reads it from latest run
     if not args.cluster_id:
         args.cluster_id = utils.get_tfvars(cluster_name)["cluster_inventory_id"]
-    client = assisted_service_api.create_client(args.namespace, wait_for_url=False)
+
+    if args.target in ('oc', 'oc-ingress'):
+        oc_login(args.oc_server, args.oc_token)
+
+    client = assisted_service_api.create_client(
+        namespace=args.namespace,
+        wait_for_url=False,
+        target=args.target
+    )
     run_install_flow(
         client=client,
         cluster_id=args.cluster_id,
@@ -152,6 +161,25 @@ if __name__ == "__main__":
         '--cluster-name',
         help='Cluster name',
         required=False,
+    )
+    parser.add_argument(
+        '-t',
+        '--target',
+        help='Target inventory deployment (minikube/oc/oc-ingress)',
+        type=utils.validate_target,
+        default='minikube',
+    )
+    parser.add_argument(
+        '--oc-token',
+        help='Token for oc target that will be used for login',
+        type=str,
+        required=False
+    )
+    parser.add_argument(
+        '--oc-server',
+        help='Server for oc target that will be used for login',
+        type=str,
+        required=False
     )
     args = parser.parse_args()
     main()

@@ -10,6 +10,7 @@ import consts
 import utils
 import virsh_cleanup
 from logger import log
+from oc_login import oc_login
 
 
 # Try to delete cluster if assisted-service is up and such cluster exists
@@ -18,7 +19,10 @@ def try_to_delete_cluster(namespace, tfvars):
         cluster_id = tfvars.get("cluster_inventory_id")
         if cluster_id:
             client = assisted_service_api.create_client(
-                namespace, args.inventory_url, wait_for_url=False
+                namespace=namespace,
+                inventory_url=args.inventory_url,
+                wait_for_url=False,
+                target=args.target
             )
             client.delete_cluster(cluster_id=cluster_id)
     # TODO add different exception validations
@@ -71,6 +75,9 @@ def get_namespaces():
 
 
 def main():
+    if args.target in ('oc', 'oc-ingress'):
+        oc_login(args.oc_server, args.oc_token)
+
     if args.namespace == 'all':
         for namespace in get_namespaces():
             delete_cluster_by_namespace(namespace)
@@ -130,6 +137,25 @@ if __name__ == "__main__":
         '--cluster-name',
         help='Cluster name',
         required=False,
+    )
+    parser.add_argument(
+        '-t',
+        '--target',
+        help='Target inventory deployment (minikube/oc/oc-ingress)',
+        type=utils.validate_target,
+        default='minikube',
+    )
+    parser.add_argument(
+        '--oc-token',
+        help='Token for oc target that will be used for login',
+        type=str,
+        required=False
+    )
+    parser.add_argument(
+        '--oc-server',
+        help='Server for oc target that will be used for login',
+        type=str,
+        required=False
     )
     args = parser.parse_args()
     main()
