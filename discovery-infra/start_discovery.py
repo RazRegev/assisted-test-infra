@@ -217,9 +217,11 @@ def _is_cidr_machine_exist(cidr_machine):
         stdout=sp.PIPE,
         stderr=sp.PIPE,
     )
+
     err = p.stderr.read().decode().strip()
     if err and 'does not exist' not in err:
         raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
+
     is_exist = bool(p.stdout.read().decode().strip())
     return is_exist
 
@@ -239,9 +241,11 @@ def _is_bridge_exist(bridge):
         stdout=sp.PIPE,
         stderr=sp.PIPE,
     )
+
     err = p.stderr.read().decode().strip()
-    if err and 'does not exist' not in err:
+    if err:
         raise RuntimeError('cmd %s exited with an error: %s', p.args, err)
+
     is_exist = bool(p.stdout.read().decode().strip())
     return is_exist
 
