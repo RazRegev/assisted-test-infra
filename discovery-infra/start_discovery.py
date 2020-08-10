@@ -382,7 +382,7 @@ def main():
         args.network_bridge = _find_free_network_bridge()
 
     if args.target in ('oc', 'oc-ingress'):
-        oc_login(args.oc_server, args.oc_token)
+        oc_login(args.oc_token, args.oc_server)
 
     # If image is passed, there is no need to create cluster and download image, need only to spawn vms with is image
     if not args.image:

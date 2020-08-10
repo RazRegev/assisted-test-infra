@@ -128,7 +128,7 @@ def main():
         return
 
     if args.target in ('oc', 'oc-ingress'):
-        oc_login(args.oc_server, args.oc_token)
+        oc_login(args.oc_token, args.oc_server)
 
     if args.namespace == 'all':
         delete_clusters_from_all_namespaces()

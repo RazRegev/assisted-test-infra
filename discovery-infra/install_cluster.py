@@ -119,7 +119,7 @@ def main():
         args.cluster_id = utils.get_tfvars(cluster_name)["cluster_inventory_id"]
 
     if args.target in ('oc', 'oc-ingress'):
-        oc_login(args.oc_server, args.oc_token)
+        oc_login(args.oc_token, args.oc_server)
 
     client = assisted_service_api.create_client(
         service_name=args.service_name,

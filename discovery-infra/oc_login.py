@@ -5,7 +5,7 @@ from logger import log
 from utils import run_command
 
 
-def oc_login(server=None, token=None):
+def oc_login(token=None, server=None):
     log.info('performing oc-login')
     cmd = _get_cmd(token, server)
     run_command(cmd)
