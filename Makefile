@@ -9,6 +9,7 @@ PULL_PARAM=$(shell if [ "${CONTAINER_COMMAND}" = "podman" ];then echo "--pull-al
 SKIPPER_PARAMS ?= -i
 
 # assisted-service
+SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
 SERVICE_BRANCH := $(or $(SERVICE_BRANCH), "master")
 SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/openshift/assisted-service")
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
@@ -60,6 +61,7 @@ IMAGE_REG_NAME=quay.io/itsoiref/$(IMAGE_NAME)
 TARGET := $(or $(TARGET),minikube)
 OC_TOKEN := $(or $(OC_TOKEN),"")
 OC_SERVER := $(or $(OC_SERVER),"")
+
 .EXPORT_ALL_VARIABLES:
 
 
@@ -162,10 +164,10 @@ kill_all_port_forwardings:
 ###########
 
 _install_cluster:
-	discovery-infra/install_cluster.py -id $(CLUSTER_ID) -ps '$(PULL_SECRET) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER)'
+	discovery-infra/install_cluster.py -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ps '$(PULL_SECRET)' -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME)
 
 install_cluster:
-	skipper make _install_cluster NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
+	skipper make _install_cluster $(SKIPPER_PARAMS)
 
 
 #########
@@ -173,7 +175,7 @@ install_cluster:
 #########
 
 _deploy_nodes:
-	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nN $(NETWORK_NAME) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) $(ADDITIONAL_PARAMS)
+	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nN $(NETWORK_NAME) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) $(ADDITIONAL_PARAMS)
 
 deploy_nodes_with_install:
 	skipper make _deploy_nodes NAMESPACE=$(NAMESPACE) ADDITIONAL_PARAMS=-in $(SKIPPER_PARAMS)
@@ -182,7 +184,7 @@ deploy_nodes:
 	skipper make _deploy_nodes NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
 
 destroy_nodes:
-	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER)' $(SKIPPER_PARAMS)
+	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME)' $(SKIPPER_PARAMS)
 
 redeploy_nodes: destroy_nodes deploy_nodes
 
@@ -203,14 +205,14 @@ deploy_monitoring: bring_assisted_service
 	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE)
 
 delete_all_virsh_resources: destroy_nodes delete_minikube
-	skipper run 'discovery-infra/delete_nodes.py -ns all -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) -a' $(SKIPPER_PARAMS)
+	skipper run 'discovery-infra/delete_nodes.py -ns all -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) -a' $(SKIPPER_PARAMS)
 
 #######
 # ISO #
 #######
 
 _download_iso:
-	discovery-infra/start_discovery.py -k '$(SSH_PUB_KEY)'  -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -ov $(OPENSHIFT_VERSION) -pU $(PROXY_URL) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) -iO
+	discovery-infra/start_discovery.py -k '$(SSH_PUB_KEY)'  -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -ov $(OPENSHIFT_VERSION) -pU $(PROXY_URL) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) -iO
 
 download_iso:
 	skipper make _download_iso NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)

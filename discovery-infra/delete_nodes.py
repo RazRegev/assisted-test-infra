@@ -20,6 +20,7 @@ def try_to_delete_cluster(namespace, tfvars):
         cluster_id = tfvars.get("cluster_inventory_id")
         if cluster_id:
             client = assisted_service_api.create_client(
+                service_name=args.service_name,
                 namespace=namespace,
                 inventory_url=args.inventory_url,
                 wait_for_url=False,
@@ -179,6 +180,13 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default='https://api.ocp.prod.psi.redhat.com:6443'
+    )
+    parser.add_argument(
+        '--service-name',
+        help='Assisted Service name',
+        type=str,
+        required=False,
+        default='assisted-service'
     )
     args = parser.parse_args()
     main()

@@ -388,6 +388,7 @@ def main():
     if not args.image:
         utils.recreate_folder(image_folder)
         client = assisted_service_api.create_client(
+            service_name=args.service_name,
             namespace=args.namespace,
             inventory_url=args.inventory_url,
             target=args.target
@@ -583,6 +584,13 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default='https://api.ocp.prod.psi.redhat.com:6443'
+    )
+    parser.add_argument(
+        '--service-name',
+        help='Assisted Service name',
+        type=str,
+        required=False,
+        default='assisted-service'
     )
     args = parser.parse_args()
     if not args.pull_secret and args.install_cluster:

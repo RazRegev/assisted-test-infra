@@ -122,6 +122,7 @@ def main():
         oc_login(args.oc_server, args.oc_token)
 
     client = assisted_service_api.create_client(
+        service_name=args.service_name,
         namespace=args.namespace,
         wait_for_url=False,
         target=args.target
@@ -181,6 +182,13 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default='https://api.ocp.prod.psi.redhat.com:6443'
+    )
+    parser.add_argument(
+        '--service-name',
+        help='Assisted Service name',
+        type=str,
+        required=False,
+        default='assisted-service'
     )
     args = parser.parse_args()
     main()
