@@ -62,10 +62,10 @@ def delete_nodes(cluster_name, namespace, tfvars):
 
     _try_to_delete_nodes()
 
-    network_name = consts.NETWORK_NAME_PREFIX + namespace
+    default_network_name = consts.NETWORK_NAME_PREFIX + namespace
     _delete_virsh_resources(
         tfvars.get('cluster_name', cluster_name),
-        tfvars.get('libvirt_network_name', network_name),
+        tfvars.get('libvirt_network_name', default_network_name),
     )
 
 
