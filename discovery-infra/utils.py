@@ -82,7 +82,7 @@ def _get_remote_service_url(service, namespace):
     cmd_output = run_command(
         'kubectl get route '
         f'--namespace {namespace} '
-        f'--field-selector spec.to.name=bm-inventory '
+        f'--field-selector spec.to.name={service} '
         '--output=json'
     )
 

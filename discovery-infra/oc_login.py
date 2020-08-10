@@ -5,46 +5,56 @@ from logger import log
 from utils import run_command
 
 
-def _load_kube_config():
+def oc_login(server=None, token=None):
+    log.info('performing oc-login')
+    cmd = _get_cmd(token, server)
+    run_command(cmd)
+
+
+def _get_cmd(token, server):
+    if not token or not server:
+        token, server = _find_token_and_server_from_kubeconfig()
+
+    return _build_cmd_from_token_and_server(token, server)
+
+
+def _find_token_and_server_from_kubeconfig():
+    config = _load_kubeconfig()
+    for cluster in _iterate_clusters(config):
+        user = _get_user_by_cluster(config, cluster)
+        if not user:
+            continue
+        token = _get_token_by_user(config, user)
+        if not token:
+            continue
+        server = cluster['cluster']['server']
+        return token, server
+
+    raise RuntimeError(
+        'unable to find any valid pair of token and server in kubeconfig file '
+        'to perform oc-login'
+    )
+
+
+def _load_kubeconfig():
     config_file = os.path.join(os.environ['HOME'], '.kube', 'config')
     with open(config_file) as fp:
         return yaml.safe_load(fp)
 
 
-def _build_oc_login_cmd(config, server, token):
-    cmd = 'oc login --insecure-skip-tls-verify=true'
-
-    cluster, server = _get_cluster_and_server(config, server)
-    cmd += f' --server={server}'
-
-    if not token:
-        user = _get_user_by_cluster(config, cluster)
-        token = _get_token_by_user(config, user)
-    cmd += f' --token={token}'
-
-    return cmd
-
-
-def _get_cluster_and_server(config, server):
-    clusters = config['clusters']
-    if not config['clusters']:
+def _iterate_clusters(config):
+    clusters = config.get('clusters', [])
+    if len(clusters) == 0:
         raise RuntimeError(f'no cluster was found in config: {config}')
-    elif not server:
-        return clusters[0]['name'], clusters[0]['cluster']['server']
 
     for c in clusters:
-        if 'server' in c['cluster'] and c['cluster']['server'] == server:
-            return c['name'], server
-
-    raise RuntimeError(f'no matching cluster was found for server: {server}')
+        yield c
 
 
 def _get_user_by_cluster(config, cluster):
     for ctx in config['contexts']:
-        if ctx['context']['cluster'] == cluster:
+        if ctx['context']['cluster'] == cluster['name']:
             return ctx['context']['user']
-
-    raise RuntimeError(f'no matching user was found for cluster: {cluster}')
 
 
 def _get_token_by_user(config, user):
@@ -52,11 +62,9 @@ def _get_token_by_user(config, user):
         if u['name'] == user and 'token' in u['user']:
             return u['user']['token']
 
-    raise RuntimeError(f'no matching token was found for username: {user}')
 
-
-def oc_login(server=None, token=None):
-    log.info('performing oc-login')
-    config = _load_kube_config()
-    cmd = _build_oc_login_cmd(config, server, token)
-    run_command(cmd)
+def _build_cmd_from_token_and_server(token, server):
+    return 'oc login ' \
+           '--insecure-skip-tls-verify=true ' \
+           f'--token={token} ' \
+           f'--server={server}'

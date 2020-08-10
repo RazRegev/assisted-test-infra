@@ -177,7 +177,8 @@ if __name__ == "__main__":
         '--oc-server',
         help='Server for oc target that will be used for login',
         type=str,
-        required=False
+        required=False,
+        default='https://api.ocp.prod.psi.redhat.com:6443'
     )
     args = parser.parse_args()
     main()
