@@ -45,7 +45,7 @@ def _load_kubeconfig():
 def _iterate_clusters(config):
     clusters = config.get('clusters', [])
     if len(clusters) == 0:
-        raise RuntimeError(f'no cluster was found in config: {config}')
+        raise RuntimeError(f'no clusters found in config: {config}')
 
     for c in clusters:
         yield c
