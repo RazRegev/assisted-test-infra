@@ -6,7 +6,7 @@ from utils import run_command
 
 
 def oc_login(token=None, server=None):
-    log.info('performing oc-login')
+    log.info('Performing oc-login')
     cmd = _get_cmd(token, server)
     run_command(cmd)
 
