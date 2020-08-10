@@ -42,7 +42,6 @@ NAMESPACE := $(or $(NAMESPACE),assisted-installer)
 BASE_DNS_DOMAINS := $(or $(BASE_DNS_DOMAINS), "")
 BASE_DOMAIN := $(or $(BASE_DOMAIN),redhat.com)
 NETWORK_CIDR := $(or $(NETWORK_CIDR), "")
-NETWORK_NAME := $(or $(NETWORK_NAME), test-infra-net-$(NAMESPACE))
 NETWORK_BRIDGE := $(or $(NETWORK_BRIDGE), "")
 NETWORK_MTU := $(or $(NETWORK_MTU), 1500)
 PROXY_URL := $(or $(PROXY_URL), "")
@@ -60,7 +59,7 @@ IMAGE_NAME=test-infra
 IMAGE_REG_NAME=quay.io/itsoiref/$(IMAGE_NAME)
 TARGET := $(or $(TARGET),minikube)
 OC_TOKEN := $(or $(OC_TOKEN),"")
-OC_SERVER := $(or $(OC_SERVER),"")
+OC_SERVER := $(or $(OC_SERVER),https://api.ocp.prod.psi.redhat.com:6443)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -175,7 +174,7 @@ install_cluster:
 #########
 
 _deploy_nodes:
-	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nN $(NETWORK_NAME) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) $(ADDITIONAL_PARAMS)
+	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) $(ADDITIONAL_PARAMS)
 
 deploy_nodes_with_install:
 	skipper make _deploy_nodes NAMESPACE=$(NAMESPACE) ADDITIONAL_PARAMS=-in $(SKIPPER_PARAMS)
@@ -185,6 +184,9 @@ deploy_nodes:
 
 destroy_nodes:
 	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns $(NAMESPACE) -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME)' $(SKIPPER_PARAMS)
+
+destroy_all_nodes:
+	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns all -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME)' $(SKIPPER_PARAMS)
 
 redeploy_nodes: destroy_nodes deploy_nodes
 
@@ -204,7 +206,7 @@ bring_assisted_service:
 deploy_monitoring: bring_assisted_service
 	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE)
 
-delete_all_virsh_resources: destroy_nodes delete_minikube
+delete_all_virsh_resources: destroy_all_nodes delete_minikube
 	skipper run 'discovery-infra/delete_nodes.py -ns all -t $(TARGET) --oc-token $(OC_TOKEN) --oc-server $(OC_SERVER) --service-name $(SERVICE_NAME) -a' $(SKIPPER_PARAMS)
 
 #######

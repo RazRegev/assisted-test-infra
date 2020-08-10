@@ -6,6 +6,7 @@ import shlex
 import shutil
 import subprocess
 from pathlib import Path
+from functools import wraps
 
 import consts
 import libvirt
@@ -305,3 +306,21 @@ def validate_target(target):
     if target not in ('minikube', 'oc', 'oc-ingress'):
         raise ValueError(f'invalid target {target}')
     return target
+
+
+def on_exception(*, message=None, callback=None, silent=False):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as e:
+                if message:
+                    log.exception(message)
+                if callback:
+                    callback(e)
+                if silent:
+                    return
+                raise
+        return wrapped
+    return decorator

@@ -18,7 +18,7 @@ CLUSTER_PREFIX = "%s" % CLUSTER
 TEST_NETWORK = "%s-net" % TEST_INFRA
 DEFAULT_CLUSTER_KUBECONFIG_PATH = "build/kubeconfig"
 WAIT_FOR_BM_API = 900
-
+NETWORK_NAME_PREFIX = 'test-infra-net-'
 
 class NodeRoles:
     WORKER = "worker"
