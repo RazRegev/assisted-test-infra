@@ -70,7 +70,7 @@ def delete_nodes(cluster_name, namespace, tfvars):
 
 
 def _delete_virsh_resources(*filters):
-    log.info('Deleting virsh resources (resource filters: %s)', filters)
+    log.info('Deleting virsh resources (filters: %s)', filters)
     virsh_cleanup.clean_virsh_resources(
         skip_list=virsh_cleanup.DEFAULT_SKIP_LIST,
         resource_filter=filters
@@ -129,7 +129,6 @@ def main():
 
     if args.target in ('oc', 'oc-ingress'):
         oc_login(args.oc_server, args.oc_token)
-        return
 
     if args.namespace == 'all':
         delete_clusters_from_all_namespaces()
