@@ -26,13 +26,13 @@ def run_command(command, shell=False, callback=None):
         universal_newlines=True
     )
 
-    def io_buffer_to_str(buf):
+    def _io_buffer_to_str(buf):
         if hasattr(buf, 'read'):
             buf = buf.read().decode()
         return buf
 
-    out = io_buffer_to_str(process.stdout).strip()
-    err = io_buffer_to_str(process.stderr).strip()
+    out = _io_buffer_to_str(process.stdout).strip()
+    err = _io_buffer_to_str(process.stderr).strip()
 
     if callback is None:
         callback = raise_error_if_occurred
@@ -42,7 +42,7 @@ def run_command(command, shell=False, callback=None):
 
 def raise_error_if_occurred(cmd, out, err):
     if err:
-        raise RuntimeError(f'cmd {cmd} exited with an error: {err}')
+        raise RuntimeError(f'cmd: {cmd} exited with an error: {err}')
 
     return out
 

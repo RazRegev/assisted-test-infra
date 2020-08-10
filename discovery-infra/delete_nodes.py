@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 import argparse
 import shutil
 
@@ -61,33 +62,54 @@ def delete_all():
     virsh_cleanup.clean_virsh_resources(virsh_cleanup.DEFAULT_SKIP_LIST, None)
 
 
-def get_namespaces():
-    cmd_output = utils.run_command(
-        'kubectl get namespace -o name --selector name'
+def iter_clusters_namespaces(clusters):
+    items = utils.run_command(
+        'kubectl get namespace --output json --selector name',
+        callback=_parse_get_namespace_cmd_output
     )
 
-    namespaces = []
-    for line in cmd_output.splitlines():
-        _, ns = line.decode().strip().split('/', 1)
-        namespaces.append(ns)
+    for i in items:
+        namespace = i['name']
+        if _is_namespace_in_use(namespace, clusters):
+            yield namespace
 
-    return namespaces
+
+def _parse_get_namespace_cmd_output(cmd, out, err):
+    utils.raise_error_if_occurred(cmd, out, err)
+
+    try:
+        return json.loads(out).get('items', [])
+    except json.JSONDecodeError:
+        log.exception(f'cmd {cmd}: unable to decode json output: {out}')
+        raise
+
+
+def _is_namespace_in_use(namespace, clusters):
+    for c in clusters:
+        if c.endswith(f'-{namespace}'):
+            return True
+
+    return False
 
 
 def main():
     if args.target in ('oc', 'oc-ingress'):
         oc_login(args.oc_server, args.oc_token)
 
+    clusters = os.listdir(consts.TF_FOLDER)
+
     if args.namespace == 'all':
-        for namespace in get_namespaces():
+        for namespace in iter_clusters_namespaces(clusters):
             delete_cluster_by_namespace(namespace)
-    else:
+
+    elif _is_namespace_in_use(args.namespace, clusters):
         delete_cluster_by_namespace(args.namespace)
 
 
 def delete_cluster_by_namespace(namespace):
     cluster_name = args.cluster_name or consts.CLUSTER_PREFIX
     cluster_name += f'-{namespace}'
+    log.info('deleting cluster: %s', cluster_name)
 
     if args.delete_all:
         delete_all()
