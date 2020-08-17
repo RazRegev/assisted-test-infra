@@ -86,7 +86,7 @@ destroy: destroy_nodes delete_minikube
 # Environment #
 ###############
 
-create_full_environment:
+create_full_environment: kill_all_port_forwardings
 	./create_full_environment.sh
 
 create_environment: image_build bring_assisted_service start_minikube
