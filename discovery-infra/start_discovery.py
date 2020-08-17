@@ -212,7 +212,7 @@ def _ping(ip):
     try:
         utils.run_command(f'ping -c1 -w1 -i0.2 {ip}')
     except RuntimeError as e:
-        if str(e).endswith('exited with code: 1'):
+        if 'exited with code:' in str(e):
             return False
 
     return True
