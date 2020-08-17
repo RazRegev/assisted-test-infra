@@ -78,6 +78,7 @@ def _delete_virsh_resources(*filters):
 )
 def delete_clusters_from_all_namespaces():
     for name, namespace in utils.get_all_namespaced_clusters():
+        args.profile = namespace
         delete_cluster(name, namespace)
 
 
@@ -92,8 +93,8 @@ def delete_cluster(cluster_name, namespace):
     tfvars = utils.get_tfvars(tf_folder)
 
     if not args.only_nodes:
-        args.profile = namespace
         try_to_delete_cluster(namespace, tfvars)
+
     delete_nodes(cluster_name, namespace, tf_folder, tfvars)
 
 
