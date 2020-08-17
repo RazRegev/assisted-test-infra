@@ -214,6 +214,7 @@ def _ping(ip):
     except RuntimeError as e:
         if 'exited with code:' in str(e):
             return False
+        raise
 
     return True
 
