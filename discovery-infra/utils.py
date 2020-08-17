@@ -6,6 +6,7 @@ import shlex
 import shutil
 import subprocess
 from pathlib import Path
+from functools import wraps
 
 import libvirt
 import waiting
@@ -328,3 +329,42 @@ def is_assisted_service_reachable(url):
 
 def get_tf_folder(cluster_name, namespace):
     return os.path.join(consts.TF_FOLDER, f'{cluster_name}:{namespace}')
+
+
+def get_all_namespaced_clusters():
+    for dirname in os.listdir(consts.TF_FOLDER):
+        res = get_name_and_namespace_from_dirname(dirname)
+        if not res:
+            continue
+        name, namespace = res
+        yield name, namespace
+
+
+def get_name_and_namespace_from_dirname(dirname):
+    if ':' in dirname:
+        return dirname.rsplit(':', 1)
+
+    log.warning(
+        'Unable to extract cluster name and namespace from directory name %s. '
+        'Directory name convention must be <cluster_name>:<namespace>',
+        dirname
+    )
+
+
+def on_exception(*, message=None, callback=None, silent=False):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as e:
+                if message:
+                    log.exception(message)
+                if callback:
+                    callback(e)
+                if silent:
+                    return
+                raise
+        return wrapped
+    return decorator
+
