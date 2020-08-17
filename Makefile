@@ -13,6 +13,11 @@ SERVICE_BRANCH := $(or $(SERVICE_BRANCH), "master")
 SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/openshift/assisted-service")
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
 SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
+SERVICE_START_PORT := $(or $(SERVICE_START_PORT),6000)
+
+# ui
+UI_SERVICE_NAME := $(or $(UI_SERVICE_NAME),ocp-metal-ui)
+UI_START_PORT := $(or $(UI_START_PORT),6008)
 
 # nodes params
 ISO := $(or $(ISO), "") # ISO should point to a file that has the '.iso' extension. Otherwise deploy will fail!
@@ -155,13 +160,19 @@ set_dns:
 	scripts/assisted_deployment.sh set_dns
 
 deploy_ui: start_minikube
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_ui.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) UI_START_PORT=$(UI_START_PORT) scripts/deploy_ui.sh
 
 test_ui: deploy_ui
 	DEPLOY_TAG=$(DEPLOY_TAG) PULL_SECRET=${PULL_SECRET} scripts/test_ui.sh
 
 kill_all_port_forwardings:
-	scripts/utils.sh kill_all_port_forwardings
+	scripts/utils.sh kill_all_port_forwardings '$(SERVICE_NAME) $(UI_SERVICE_NAME)'
+
+list_namespaced_forwarded_ports:
+	scripts/utils.sh list_forwarded_ports $(NAMESPACE)
+
+list_all_forwarded_ports:
+	scripts/utils.sh list_forwarded_ports all
 
 ###########
 # Cluster #
@@ -203,7 +214,7 @@ redeploy_nodes_with_install: destroy_nodes deploy_nodes_with_install
 
 deploy_assisted_service: start_minikube bring_assisted_service
 	mkdir -p assisted-service/build
-	DEPLOY_TAG=$(DEPLOY_TAG) scripts/deploy_assisted_service.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) SERVICE_START_PORT=$(SERVICE_START_PORT) scripts/deploy_assisted_service.sh
 
 bring_assisted_service:
 	@if cd assisted-service >/dev/null 2>&1; then git fetch --all && git reset --hard origin/$(SERVICE_BRANCH); else git clone --branch $(SERVICE_BRANCH) $(SERVICE_REPO);fi
