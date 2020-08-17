@@ -9,9 +9,13 @@ function configure_minikube() {
 
 function init_minikube() {
     #If the vm exists, it has already been initialized
-    if [[ "$(virsh -c qemu:///system list --name)" != *$PROFILE* ]]; then
-        minikube start --driver=kvm2 --memory=8192 --profile=$PROFILE --force
-    fi
+    for p in $(virsh -c qemu:///system list --name ); do
+        if [[ $p == $PROFILE ]]; then
+            return
+        fi
+    done
+
+    minikube start --driver=kvm2 --memory=8192 --profile=$PROFILE --force
 }
 
 configure_minikube
