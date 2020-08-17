@@ -92,8 +92,8 @@ def delete_cluster(cluster_name, namespace):
     tfvars = utils.get_tfvars(tf_folder)
 
     if not args.only_nodes:
+        args.profile = namespace
         try_to_delete_cluster(namespace, tfvars)
-    args.profile = namespace
     delete_nodes(cluster_name, namespace, tf_folder, tfvars)
 
 
