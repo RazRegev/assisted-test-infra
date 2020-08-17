@@ -7,7 +7,6 @@ export NODE_IP=$(get_main_ip)
 export UI_START_PORT=${UI_START_PORT:-6008}
 export UI_SERVICE_NAME=ocp-metal-ui
 export NAMESPACE=${NAMESPACE:-assisted-installer}
-export UI_PORT=$(search_for_next_free_port $UI_SERVICE_NAME $NAMESPACE $UI_START_PORT)
 export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}
 export CONTAINER_COMMAND=${CONTAINER_COMMAND:-podman}
 export UI_DEPLOY_FILE=build/ui_deploy.yaml
@@ -35,6 +34,8 @@ kubectl --kubeconfig=${KUBECONFIG} apply -f ${UI_DEPLOY_FILE}
 
 print_log "Wait till ui api is ready"
 wait_for_url_and_run "$(minikube service ${UI_SERVICE_NAME} -p $PROFILE -n ${NAMESPACE} --url)" "echo \"waiting for ${UI_SERVICE_NAME}\""
+
+export UI_PORT=$(search_for_next_free_port $UI_SERVICE_NAME $NAMESPACE $UI_START_PORT)
 
 print_log "Starting port forwarding for deployment/${UI_SERVICE_NAME}"
 wait_for_url_and_run "http://${NODE_IP}:${UI_PORT}" "spawn_port_forwarding_command ${UI_SERVICE_NAME} ${UI_PORT} $NAMESPACE $PROFILE"
