@@ -333,6 +333,9 @@ def get_tf_folder(cluster_name, namespace):
 
 
 def get_all_namespaced_clusters():
+    if not os.path.isdir(consts.TF_FOLDER):
+        return
+
     for dirname in os.listdir(consts.TF_FOLDER):
         res = get_name_and_namespace_from_dirname(dirname)
         if not res:
