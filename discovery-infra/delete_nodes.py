@@ -108,7 +108,7 @@ def main():
         return
 
     cluster_name = f'{args.cluster_name or consts.CLUSTER_PREFIX}-{args.namespace}'
-    delete_cluster_by_name(cluster_name, args.namespace)
+    delete_cluster(cluster_name, args.namespace)
 
 
 if __name__ == "__main__":
