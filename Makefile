@@ -77,7 +77,7 @@ NAMESPACE_INDEX := $(shell python scripts/ns_indexer.py --action set --namespace
 
 all: create_full_environment run_full_flow_with_install
 
-destroy: destroy_nodes delete_minikube
+destroy: destroy_nodes delete_minikube kill_port_forwardings
 	rm -rf build/terraform/*
 	python scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 
@@ -161,6 +161,9 @@ deploy_ui: start_minikube
 test_ui: deploy_ui
 	DEPLOY_TAG=$(DEPLOY_TAG) PULL_SECRET=${PULL_SECRET} scripts/test_ui.sh
 
+kill_port_forwardings:
+	scripts/utils.sh kill_port_forwardings '$(NAMESPACE)'
+
 kill_all_port_forwardings:
 	scripts/utils.sh kill_all_port_forwardings
 
@@ -209,7 +212,7 @@ bring_assisted_service:
 deploy_monitoring: bring_assisted_service
 	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE)
 
-delete_all_virsh_resources: destroy_nodes delete_minikube
+delete_all_virsh_resources: destroy_nodes delete_minikube kill_all_port_forwardings
 	skipper run 'discovery-infra/delete_nodes.py -ns $(NAMESPACE) -a' $(SKIPPER_PARAMS)
 	python scripts/ns_indexer.py --action del --namespace all
 

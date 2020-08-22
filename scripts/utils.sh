@@ -17,8 +17,12 @@ function url_reachable() {
 function spawn_port_forwarding_command() {
     service_name=$1
     external_port=$2
+    namespace=$3
+    namespace_index=$4
 
-    cat <<EOF >build/xinetd-${service_name}
+    filename=${service_name}__${namespace}__${namespace_index}__assisted_installer
+
+    cat <<EOF >build/xinetd-$filename
 service ${service_name}
 {
   flags		= IPv4
@@ -34,7 +38,7 @@ service ${service_name}
   per_source	= UNLIMITED
 }
 EOF
-    sudo mv build/xinetd-${service_name} /etc/xinetd.d/${service_name} --force
+    sudo mv build/xinetd-$filename /etc/xinetd.d/$filename --force
     sudo systemctl restart xinetd
 }
 
@@ -42,8 +46,19 @@ function run_in_background() {
     bash -c "nohup $1  >/dev/null 2>&1 &"
 }
 
+function kill_port_forwardings() {
+    namespace=$1
+    sudo systemctl stop xinetd
+    for f in $(sudo ls /etc/xinetd.d/ | grep __${namespace}__); do
+        sudo rm -f /etc/xinetd.d/$f
+    done
+}
+
 function kill_all_port_forwardings() {
     sudo systemctl stop xinetd
+    for f in $(sudo ls /etc/xinetd.d/ | grep __assisted_installer); do
+        sudo rm -f /etc/xinetd.d/$f
+    done
 }
 
 function get_main_ip() {
