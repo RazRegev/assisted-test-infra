@@ -55,13 +55,16 @@ IMAGE_REG_NAME=quay.io/itsoiref/$(IMAGE_NAME)
 # oc deploy
 KUBECONFIG := $(or $(KUBECONFIG),${HOME}/.kube/config)
 ifneq ($(or $(OC_MODE),),)
+        OC_FLAG := --oc-mode
         OC_TOKEN := $(or $(OC_TOKEN),"")
         OC_SERVER := $(or $(OC_SERVER),https://api.ocp.prod.psi.redhat.com:6443)
         OC_SCHEME := $(or $(OC_SCHEME),http)
-        OC_PARAMS = --oc-mode -oct $(OC_TOKEN) -ocs $(OC_SERVER) --oc-scheme $(OC_SCHEME)
+        OC_PARAMS = $(OC_FLAG) -oct $(OC_TOKEN) -ocs $(OC_SERVER) --oc-scheme $(OC_SCHEME)
 endif
 
 SSO_URL := $(or $(SSO_URL), https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token)
+
+NAMESPACE_INDEX := $(shell python scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG))
 
 .EXPORT_ALL_VARIABLES:
 
@@ -76,6 +79,7 @@ all: create_full_environment run_full_flow_with_install
 
 destroy: destroy_nodes delete_minikube
 	rm -rf build/terraform/*
+	python scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 
 ###############
 # Environment #
@@ -207,6 +211,7 @@ deploy_monitoring: bring_assisted_service
 
 delete_all_virsh_resources: destroy_nodes delete_minikube
 	skipper run 'discovery-infra/delete_nodes.py -ns $(NAMESPACE) -a' $(SKIPPER_PARAMS)
+	python scripts/ns_indexer.py --action del --namespace all
 
 #######
 # ISO #
