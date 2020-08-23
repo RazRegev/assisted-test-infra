@@ -65,7 +65,7 @@ SSO_URL := $(or $(SSO_URL), https://sso.redhat.com/auth/realms/redhat-external/p
 
 # minikube
 PROFILE := $(or $(PROFILE),$(NAMESPACE))
-NAMESPACE_INDEX := $(shell python scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG))
+NAMESPACE_INDEX := $(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG))
 
 .EXPORT_ALL_VARIABLES:
 
@@ -80,13 +80,13 @@ all: create_full_environment run_full_flow_with_install
 
 destroy: destroy_nodes delete_minikube kill_port_forwardings
 	rm -rf build/terraform/*
-	python scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
+	python3 scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 
 ###############
 # Environment #
 ###############
 create_full_environment: kill_all_port_forwardings
-	python scripts/ns_indexer.py --action del --namespace all
+	python3 scripts/ns_indexer.py --action del --namespace all
 	./create_full_environment.sh
 
 create_environment: image_build bring_assisted_service start_minikube
@@ -225,7 +225,7 @@ deploy_monitoring: bring_assisted_service
 
 delete_all_virsh_resources: destroy_all_nodes delete_minikube kill_all_port_forwardings
 	skipper run 'discovery-infra/delete_nodes.py -ns $(NAMESPACE) -a' $(SKIPPER_PARAMS)
-	python scripts/ns_indexer.py --action del --namespace all
+	python3 scripts/ns_indexer.py --action del --namespace all
 
 #######
 # ISO #
