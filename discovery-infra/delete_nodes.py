@@ -78,6 +78,7 @@ def _delete_virsh_resources(*filters):
 )
 def delete_clusters_from_all_namespaces():
     for name, namespace in utils.get_all_namespaced_clusters():
+        args.profile = namespace
         delete_cluster(name, namespace)
 
 
@@ -150,7 +151,13 @@ if __name__ == "__main__":
         '-cn',
         '--cluster-name',
         help='Cluster name',
-        required=False,
+        required=False
+    )
+    parser.add_argument(
+        '--profile',
+        help='Minikube profile for assisted-installer deployment',
+        type=str,
+        default='assisted-installer'
     )
     oc_utils.extend_parser_with_oc_arguments(parser)
     args = parser.parse_args()

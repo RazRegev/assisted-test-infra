@@ -19,6 +19,7 @@ function spawn_port_forwarding_command() {
     external_port=$2
     namespace=$3
     namespace_index=$4
+    profile=$5
 
     filename=${service_name}__${namespace}__${namespace_index}__assisted_installer
 
@@ -32,7 +33,7 @@ service ${service_name}
   protocol	= tcp
   user		= root
   wait		= no
-  redirect	= $(minikube ip) $(kubectl --kubeconfig=${KUBECONFIG} get svc/${service_name} -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].nodePort}')
+  redirect	= $(minikube -p $profile ip) $(kubectl --kubeconfig=${KUBECONFIG} get svc/${service_name} -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].nodePort}')
   port		= ${external_port}
   only_from	= 0.0.0.0/0
   per_source	= UNLIMITED

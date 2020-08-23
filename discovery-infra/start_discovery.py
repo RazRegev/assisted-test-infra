@@ -521,6 +521,12 @@ if __name__ == "__main__":
         type=int,
         required=True
     )
+    parser.add_argument(
+        '--profile',
+        help='Minikube profile for assisted-installer deployment',
+        type=str,
+        default='assisted-installer'
+    )
     oc_utils.extend_parser_with_oc_arguments(parser)
     args = parser.parse_args()
     if not args.pull_secret and args.install_cluster:

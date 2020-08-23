@@ -162,7 +162,13 @@ if __name__ == "__main__":
         '-cn',
         '--cluster-name',
         help='Cluster name',
-        required=False,
+        required=False
+    )
+    parser.add_argument(
+        '--profile',
+        help='Minikube profile for assisted-installer deployment',
+        type=str,
+        default='assisted-installer'
     )
     oc_utils.extend_parser_with_oc_arguments(parser)
     args = parser.parse_args()

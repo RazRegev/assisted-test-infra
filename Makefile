@@ -63,6 +63,8 @@ endif
 
 SSO_URL := $(or $(SSO_URL), https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token)
 
+# minikube
+PROFILE := $(or $(PROFILE),$(NAMESPACE))
 NAMESPACE_INDEX := $(shell python scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG))
 
 .EXPORT_ALL_VARIABLES:
@@ -110,8 +112,11 @@ start_minikube:
 	eval $(minikube docker-env)
 
 delete_minikube:
-	minikube delete
+	minikube delete --all
 	skipper run discovery-infra/virsh_cleanup.py -m
+
+delete_minikube_profile:
+	minikube delete -p $(PROFILE)
 
 #############
 # Terraform #
@@ -174,7 +179,7 @@ kill_all_port_forwardings:
 ###########
 
 _install_cluster:
-	discovery-infra/install_cluster.py -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ps '$(PULL_SECRET)' --service-name $(SERVICE_NAME) $(OC_PARAMS) -ns $(NAMESPACE)
+	discovery-infra/install_cluster.py -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ps '$(PULL_SECRET)' --service-name $(SERVICE_NAME) $(OC_PARAMS) -ns $(NAMESPACE) --profile $(PROFILE)
 
 install_cluster:
 	skipper make _install_cluster $(SKIPPER_PARAMS)
@@ -185,7 +190,7 @@ install_cluster:
 #########
 
 _deploy_nodes:
-	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) --service-name $(SERVICE_NAME) --ns-index $(NAMESPACE_INDEX) $(OC_PARAMS) $(ADDITIONAL_PARAMS)
+	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) --service-name $(SERVICE_NAME) --ns-index $(NAMESPACE_INDEX) --profile $(PROFILE) $(OC_PARAMS) $(ADDITIONAL_PARAMS)
 
 deploy_nodes_with_install:
 	skipper make _deploy_nodes NAMESPACE=$(NAMESPACE) ADDITIONAL_PARAMS=-in $(SKIPPER_PARAMS)
@@ -194,7 +199,7 @@ deploy_nodes:
 	skipper make _deploy_nodes NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
 
 destroy_nodes:
-	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) $(OC_PARAMS)' $(SKIPPER_PARAMS)
+	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) --profile $(PROFILE) $(OC_PARAMS)' $(SKIPPER_PARAMS)
 
 destroy_all_nodes:
 	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) --service-name $(SERVICE_NAME) $(OC_PARAMS) -ns all' $(SKIPPER_PARAMS)
@@ -215,7 +220,7 @@ bring_assisted_service:
 	@if cd assisted-service >/dev/null 2>&1; then git fetch --all && git reset --hard origin/$(SERVICE_BRANCH); else git clone --branch $(SERVICE_BRANCH) $(SERVICE_REPO);fi
 
 deploy_monitoring: bring_assisted_service
-	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE)
+	make -C assisted-service/ deploy-monitoring NAMESPACE=$(NAMESPACE) PROFILE=$(PROFILE)
 
 
 delete_all_virsh_resources: destroy_all_nodes delete_minikube kill_all_port_forwardings
@@ -227,7 +232,7 @@ delete_all_virsh_resources: destroy_all_nodes delete_minikube kill_all_port_forw
 #######
 
 _download_iso:
-	discovery-infra/start_discovery.py -k '$(SSH_PUB_KEY)'  -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -ov $(OPENSHIFT_VERSION) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) $(OC_PARAMS) -iO
+	discovery-infra/start_discovery.py -k '$(SSH_PUB_KEY)'  -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -ov $(OPENSHIFT_VERSION) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) --profile $(PROFILE) $(OC_PARAMS) -iO
 
 download_iso:
 	skipper make _download_iso NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
