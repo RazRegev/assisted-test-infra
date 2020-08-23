@@ -33,7 +33,7 @@ service ${service_name}
   protocol	= tcp
   user		= root
   wait		= no
-  redirect	= $(minikube -p $profile ip) $(kubectl --kubeconfig=${KUBECONFIG} get svc/${service_name} -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].nodePort}')
+  redirect	= $(minikube -p $profile ip) $(kubectl --server $(get_profile_url $profile) --kubeconfig=${KUBECONFIG} get svc/${service_name} -n ${NAMESPACE} -o=jsonpath='{.spec.ports[0].nodePort}')
   port		= ${external_port}
   only_from	= 0.0.0.0/0
   per_source	= UNLIMITED
@@ -104,6 +104,11 @@ function validate_namespace() {
     echo "Invalid namespace '$namespace'"
     echo "It can contain only letters, numbers and '-'"
     exit 1
+}
+
+function get_profile_url() {
+    profile=$1
+    echo https://$(minikube ip --profile $profile):8443
 }
 
 "$@"
