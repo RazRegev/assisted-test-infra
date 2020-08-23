@@ -9,8 +9,8 @@ PULL_PARAM=$(shell if [ "${CONTAINER_COMMAND}" = "podman" ];then echo "--pull-al
 SKIPPER_PARAMS ?= -i
 
 # assisted-service
-SERVICE_BRANCH := $(or $(SERVICE_BRANCH), "master")
-SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/openshift/assisted-service")
+SERVICE_BRANCH := $(or $(SERVICE_BRANCH), "raz/MGMT-1644")
+SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/RazRegev/assisted-service")
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
 SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
 
