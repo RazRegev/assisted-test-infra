@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PROFILE=${PROFILE:-assisted-installer}
-export TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-1}
+export TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-60}
 
 function configure_minikube() {
     echo "Configuring minikube..."
@@ -23,4 +23,4 @@ function init_minikube() {
 }
 
 configure_minikube
-sem --id SCRIPTSINGLETON --semaphoretimeout -$TIMEOUT_SECONDS $0 init_minikube
+sem --id STARTMINIKUBE --semaphoretimeout -$TIMEOUT_SECONDS $0 init_minikube --pipe
