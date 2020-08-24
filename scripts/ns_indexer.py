@@ -119,6 +119,9 @@ actions_to_methods = {
 
 
 def main(action, namespace, oc_mode=False):
+    if not os.path.isdir('build'):
+        os.mkdir('build')
+
     if oc_mode:
         # Add a prefix to remote namespace to avoid conflicts in case local and
         # remote namespaces are having the same name.
