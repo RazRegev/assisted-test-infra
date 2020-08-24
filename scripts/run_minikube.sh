@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PROFILE=${PROFILE:-assisted-installer}
-export TIMEOUT_MINUTES=${TIMEOUT_MINUTES:-5}
+export TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-1}
 
 function configure_minikube() {
     echo "Configuring minikube..."
@@ -19,8 +19,8 @@ function init_minikube() {
         fi
     done
 
-    minikube start --driver=kvm2 --memory=8192 --profile=$PROFILE --wait-timeout=${TIMEOUT_MINUTES}m --force
+    minikube start --driver=kvm2 --memory=8192 --profile=$PROFILE --wait-timeout=${TIMEOUT_SECONDS}s --force
 }
 
 configure_minikube
-sem --id SCRIPTSINGLETON --semaphoretimeout -$(( $TIMEOUT_MINUTES * 60 )) $0 init_minikube
+sem --id SCRIPTSINGLETON --semaphoretimeout -$TIMEOUT_SECONDS $0 init_minikube
