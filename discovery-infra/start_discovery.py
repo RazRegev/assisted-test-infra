@@ -317,7 +317,9 @@ def main():
         args.base_dns_domain = args.managed_dns_domains.split(":")[0]
 
     if not args.vm_network_cidr:
-        args.vm_network_cidr = IPNetwork('192.168.126.0/24') + args.ns_index
+        net_cidr = IPNetwork('192.168.126.0/24')
+        net_cidr += args.ns_index
+        args.vm_network_cidr = net_cidr
 
     if not args.network_bridge:
         args.network_bridge = f'tt{args.ns_index}'

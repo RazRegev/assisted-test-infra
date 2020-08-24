@@ -65,7 +65,7 @@ function install_runtime_container() {
 
 function install_packages() {
     echo "Installing dnf packages"
-    sudo dnf install -y make python3 python3-pip git jq bash-completion xinetd
+    sudo dnf install -y make python3 python3-pip git jq bash-completion xinetd filelock
     sudo systemctl enable --now xinetd
 }
 
@@ -121,9 +121,14 @@ function additional_configs() {
 
 }
 
+function install_gnu_parallel() {
+    sudo yum install parallel -y
+}
+
 install_packages
 install_libvirt
 install_runtime_container
 install_skipper
 config_firewalld
 additional_configs
+install_gnu_parallel
