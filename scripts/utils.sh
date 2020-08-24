@@ -111,4 +111,20 @@ function get_profile_url() {
     echo https://$(minikube ip --profile $profile):8443
 }
 
+function run_as_singleton() {
+    target=$1
+
+    lockfile="/tmp/$1.lock"
+
+    while [ -e "$lockfile" ]; do
+        echo 'Can not get lock. Waiting...' >&2
+        sleep 1
+    done
+
+    trap 'rm "$lockfile"; exit' EXIT INT TERM HUP
+    touch "$lockfile"
+
+    $target
+}
+
 "$@"

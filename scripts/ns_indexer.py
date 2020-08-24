@@ -73,8 +73,8 @@ class IndexProvider(object):
 
 
 _indexer = IndexProvider(
-    filepath='build/indexes.json',
-    lock=FileLock('build/indexes.lock')
+    filepath='build/namespaces-indexes.json',
+    lock=FileLock('/tmp/namespaces-indexes.lock')
 )
 
 
