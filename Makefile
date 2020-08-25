@@ -77,7 +77,7 @@ PROFILE := $(or $(PROFILE),$(NAMESPACE))
 
 all: create_full_environment run_full_flow_with_install
 
-destroy: destroy_nodes delete_minikube kill_port_forwardings
+destroy: destroy_nodes delete_minikube_profile kill_port_forwardings
 	rm -rf build/terraform/*
 	python3 scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 

@@ -117,7 +117,8 @@ function run_as_singleton() {
     lockfile="/tmp/$1.lock"
 
     while [ -e "$lockfile" ]; do
-        echo 'Can not get lock. Waiting...' >&2
+        echo "Can run only one instance of $target at a time"
+        echo "Waiting for other instances of $target to be completed"
         sleep 1
     done
 
