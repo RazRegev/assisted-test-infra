@@ -319,7 +319,7 @@ def main():
     if not args.vm_network_cidr:
         net_cidr = IPNetwork('192.168.126.0/24')
         net_cidr += args.ns_index
-        args.vm_network_cidr = net_cidr
+        args.vm_network_cidr = str(net_cidr.ip)
 
     if not args.network_bridge:
         args.network_bridge = f'tt{args.ns_index}'
