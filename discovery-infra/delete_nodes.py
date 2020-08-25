@@ -26,7 +26,7 @@ def try_to_delete_cluster(namespace, tfvars):
 
     args.namespace = namespace
     client = assisted_service_api.create_client(
-        url=utils.get_assisted_service_url_by_args(args)
+        url=utils.get_assisted_service_url_by_args(args=args, wait=False)
     )
     client.delete_cluster(cluster_id=cluster_id)
 
