@@ -174,7 +174,7 @@ kill_port_forwardings:
 	scripts/utils.sh kill_port_forwardings '$(NAMESPACE)'
 
 kill_all_port_forwardings:
-	scripts/utils.sh kill_all_port_forwardings '$(SERVICE_NAME) $(UI_SERVICE_NAME)'
+	scripts/utils.sh kill_port_forwardings '$(SERVICE_NAME) $(UI_SERVICE_NAME)'
 
 ###########
 # Cluster #
