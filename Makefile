@@ -15,7 +15,7 @@ SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
 SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
 
 # ui service
-UI_SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
+UI_SERVICE_NAME := $(or $(UI_SERVICE_NAME),ocp-metal-ui)
 
 # nodes params
 ISO := $(or $(ISO), "") # ISO should point to a file that has the '.iso' extension. Otherwise deploy will fail!
