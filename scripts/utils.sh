@@ -50,7 +50,7 @@ function run_in_background() {
 function kill_port_forwardings() {
     services=$1
     sudo systemctl stop xinetd
-    for s in services; do
+    for s in $services; do
         for f in $(sudo ls /etc/xinetd.d/ | grep $s); do
             sudo rm -f /etc/xinetd.d/$f
         done
