@@ -86,15 +86,6 @@ function config_firewalld() {
     sudo dnf install -y firewalld
     sudo systemctl unmask --now firewalld
     sudo systemctl start firewalld
-    if [ "${EXTERNAL_PORT}" = "y" ]; then
-        echo "configuring external ports"
-        sudo firewall-cmd --zone=public --add-port=6000-6015/tcp
-    fi
-    echo "configuring libvirt zone ports ports"
-    sudo firewall-cmd --zone=libvirt --add-port=6000-6015/tcp
-    # sudo firewall-cmd --reload
-    echo "Restarting libvirt after firewalld changes"
-    sudo systemctl restart libvirtd
 }
 
 function additional_configs() {

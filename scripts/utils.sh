@@ -107,6 +107,19 @@ function get_profile_url() {
     echo https://$(minikube ip --profile $profile):8443
 }
 
+function add_firewalld_port() {
+    port=$1
+    if [ "${EXTERNAL_PORT}" = "y" ]; then
+        echo "configuring external ports"
+        sudo firewall-cmd --zone=public --add-port=$port/tcp
+    fi
+    echo "configuring libvirt zone ports ports"
+    sudo firewall-cmd --zone=libvirt --add-port=$port/tcp
+    # sudo firewall-cmd --reload
+    echo "Restarting libvirt after firewalld changes"
+    sudo systemctl restart libvirtd
+}
+
 function run_as_singleton() {
     target=$1
 

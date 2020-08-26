@@ -35,6 +35,8 @@ kubectl --server $(get_profile_url $PROFILE) --kubeconfig=${KUBECONFIG} apply -f
 print_log "Wait till ui api is ready"
 wait_for_url_and_run "$(minikube service ${UI_SERVICE_NAME} -p $PROFILE -n ${NAMESPACE} --url)" "echo \"waiting for ${UI_SERVICE_NAME}\""
 
+add_firewalld_port $UI_PORT
+
 print_log "Starting port forwarding for deployment/${UI_SERVICE_NAME} on port $UI_PORT"
 wait_for_url_and_run "http://${NODE_IP}:${UI_PORT}" "spawn_port_forwarding_command $UI_SERVICE_NAME $UI_PORT $NAMESPACE $NAMESPACE_INDEX $PROFILE"
 print_log "OCP METAL UI can be reached at http://${NODE_IP}:${UI_PORT}"
