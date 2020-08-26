@@ -119,7 +119,7 @@ function run_as_singleton() {
     while [ -e "$lockfile" ]; do
         echo "Can run only one instance of $target at a time"
         echo "Waiting for other instances of $target to be completed"
-        sleep 1
+        sleep 15s
     done
 
     trap 'rm "$lockfile"; exit' EXIT INT TERM HUP
