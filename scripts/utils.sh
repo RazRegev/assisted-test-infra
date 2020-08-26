@@ -48,18 +48,14 @@ function run_in_background() {
 }
 
 function kill_port_forwardings() {
-    namespace=$1
+    services=$1
     sudo systemctl stop xinetd
-    for f in $(sudo ls /etc/xinetd.d/ | grep __${namespace}__); do
-        sudo rm -f /etc/xinetd.d/$f
+    for s in services; do
+        for f in $(sudo ls /etc/xinetd.d/ | grep $s); do
+            sudo rm -f /etc/xinetd.d/$f
+        done
     done
-}
-
-function kill_all_port_forwardings() {
-    sudo systemctl stop xinetd
-    for f in $(sudo ls /etc/xinetd.d/ | grep __assisted_installer); do
-        sudo rm -f /etc/xinetd.d/$f
-    done
+    sudo systemctl start xinetd
 }
 
 function get_main_ip() {

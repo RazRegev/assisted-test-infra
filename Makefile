@@ -14,6 +14,9 @@ SERVICE_REPO := $(or $(SERVICE_REPO), "https://github.com/RazRegev/assisted-serv
 SERVICE := $(or $(SERVICE), quay.io/ocpmetal/assisted-service:latest)
 SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
 
+# ui service
+UI_SERVICE_NAME := $(or $(SERVICE_NAME),assisted-service)
+
 # nodes params
 ISO := $(or $(ISO), "") # ISO should point to a file that has the '.iso' extension. Otherwise deploy will fail!
 NUM_MASTERS :=  $(or $(NUM_MASTERS),3)
@@ -171,7 +174,7 @@ kill_port_forwardings:
 	scripts/utils.sh kill_port_forwardings '$(NAMESPACE)'
 
 kill_all_port_forwardings:
-	scripts/utils.sh kill_all_port_forwardings
+	scripts/utils.sh kill_all_port_forwardings '$(SERVICE_NAME) $(UI_SERVICE_NAME)'
 
 ###########
 # Cluster #
