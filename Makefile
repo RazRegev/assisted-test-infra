@@ -68,6 +68,7 @@ SSO_URL := $(or $(SSO_URL), https://sso.redhat.com/auth/realms/redhat-external/p
 
 # minikube
 PROFILE := $(or $(PROFILE),$(NAMESPACE))
+POOL_SIZE := $(or $(POOL_SIZE),10)
 
 .EXPORT_ALL_VARIABLES:
 
@@ -82,13 +83,12 @@ all: create_full_environment run_full_flow_with_install
 
 destroy: destroy_nodes delete_minikube_profile kill_port_forwardings
 	rm -rf build/terraform/*
-	python3 scripts/ns_indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 
 ###############
 # Environment #
 ###############
 create_full_environment: kill_all_port_forwardings
-	python3 scripts/ns_indexer.py --action del --namespace all
+	python3 scripts/indexer.py --action del --namespace all
 	./create_full_environment.sh
 
 create_environment: image_build bring_assisted_service start_minikube
@@ -114,10 +114,12 @@ start_minikube:
 	eval $(minikube docker-env)
 
 delete_minikube:
+	python3 scripts/indexer.py --action del --namespace all $(OC_FLAG)
 	minikube delete --all
 	skipper run discovery-infra/virsh_cleanup.py -m
 
 delete_minikube_profile:
+	python3 scripts/indexer.py --action del --namespace $(NAMESPACE) $(OC_FLAG)
 	minikube delete -p $(PROFILE)
 
 #############
@@ -165,7 +167,7 @@ set_dns:
 	scripts/assisted_deployment.sh set_dns
 
 deploy_ui: start_minikube
-	DEPLOY_TAG=$(DEPLOY_TAG) NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) scripts/deploy_ui.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) scripts/deploy_ui.sh
 
 test_ui: deploy_ui
 	DEPLOY_TAG=$(DEPLOY_TAG) PULL_SECRET=${PULL_SECRET} scripts/test_ui.sh
@@ -195,10 +197,10 @@ _deploy_nodes:
 	discovery-infra/start_discovery.py -i $(ISO) -n $(NUM_MASTERS) -p $(STORAGE_POOL_PATH) -k '$(SSH_PUB_KEY)' -md $(MASTER_DISK) -wd $(WORKER_DISK) -mm $(MASTER_MEMORY) -wm $(WORKER_MEMORY) -nw $(NUM_WORKERS) -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -vN $(NETWORK_CIDR) -nB $(NETWORK_BRIDGE) -nM $(NETWORK_MTU) -ov $(OPENSHIFT_VERSION) -rv $(RUN_WITH_VIPS) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) --service-name $(SERVICE_NAME) --ns-index $(NAMESPACE_INDEX) --profile $(PROFILE) --ns-index $(NAMESPACE_INDEX) $(OC_PARAMS) $(ADDITIONAL_PARAMS)
 
 deploy_nodes_with_install:
-	skipper make _deploy_nodes NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) ADDITIONAL_PARAMS=-in $(SKIPPER_PARAMS)
+	skipper make _deploy_nodes NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) ADDITIONAL_PARAMS=-in $(SKIPPER_PARAMS)
 
 deploy_nodes:
-	skipper make _deploy_nodes NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
+	skipper make _deploy_nodes NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
 
 destroy_nodes:
 	skipper run 'discovery-infra/delete_nodes.py -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -cn $(CLUSTER_NAME) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) --profile $(PROFILE) $(OC_PARAMS)' $(SKIPPER_PARAMS)
@@ -216,7 +218,7 @@ redeploy_nodes_with_install: destroy_nodes deploy_nodes_with_install
 
 deploy_assisted_service: start_minikube bring_assisted_service
 	mkdir -p assisted-service/build
-	DEPLOY_TAG=$(DEPLOY_TAG) NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) scripts/deploy_assisted_service.sh
+	DEPLOY_TAG=$(DEPLOY_TAG) NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) scripts/deploy_assisted_service.sh
 
 bring_assisted_service:
 	@if cd assisted-service >/dev/null 2>&1; then git fetch --all && git reset --hard origin/$(SERVICE_BRANCH); else git clone --branch $(SERVICE_BRANCH) $(SERVICE_REPO);fi
@@ -227,7 +229,7 @@ deploy_monitoring: bring_assisted_service
 
 delete_all_virsh_resources: destroy_all_nodes delete_minikube kill_all_port_forwardings
 	skipper run 'discovery-infra/delete_nodes.py -ns $(NAMESPACE) -a' $(SKIPPER_PARAMS)
-	python3 scripts/ns_indexer.py --action del --namespace all
+	python3 scripts/indexer.py --action del --namespace all
 
 #######
 # ISO #
@@ -237,10 +239,10 @@ _download_iso:
 	discovery-infra/start_discovery.py -k '$(SSH_PUB_KEY)'  -ps '$(PULL_SECRET)' -bd $(BASE_DOMAIN) -cN $(CLUSTER_NAME) -ov $(OPENSHIFT_VERSION) -pX $(HTTP_PROXY_URL) -sX $(HTTPS_PROXY_URL) -nX $(NO_PROXY) -iU $(REMOTE_SERVICE_URL) -id $(CLUSTER_ID) -mD $(BASE_DNS_DOMAINS) -ns $(NAMESPACE) --service-name $(SERVICE_NAME) --profile $(PROFILE) --ns-index $(NAMESPACE_INDEX) $(OC_PARAMS) -iO
 
 download_iso:
-	skipper make _download_iso NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
+	skipper make _download_iso NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
 
 download_iso_for_remote_use: deploy_assisted_service
-	skipper make _download_iso NAMESPACE_INDEX=$(shell python3 scripts/ns_indexer.py --action set --namespace $(NAMESPACE) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
+	skipper make _download_iso NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) $(OC_FLAG)) NAMESPACE=$(NAMESPACE) $(SKIPPER_PARAMS)
 
 ########
 # Test #

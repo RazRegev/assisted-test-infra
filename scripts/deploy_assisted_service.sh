@@ -11,6 +11,7 @@ export SERVICE_URL=$(get_main_ip)
 export SERVICE_PORT=$(( 6000 + $NAMESPACE_INDEX ))
 export SERVICE_BASE_URL="http://${SERVICE_URL}:${SERVICE_PORT}"
 export ENABLE_AUTH=${ENABLE_AUTH:-false}
+export EXTERNAL_PORT=${EXTERNAL_PORT:-y}
 
 mkdir -p build
 
@@ -22,6 +23,8 @@ skipper run "make -C assisted-service/ deploy-all" ${SKIPPER_PARAMS} DEPLOY_TAG=
 
 print_log "Wait till ${SERVICE_NAME} api is ready"
 wait_for_url_and_run "$(minikube service ${SERVICE_NAME} --url -p $PROFILE -n ${NAMESPACE})" "echo \"waiting for ${SERVICE_NAME}\""
+
+add_firewalld_port $SERVICE_PORT
 
 print_log "Starting port forwarding for deployment/${SERVICE_NAME} on port $SERVICE_PORT"
 wait_for_url_and_run ${SERVICE_BASE_URL} "spawn_port_forwarding_command $SERVICE_NAME $SERVICE_PORT $NAMESPACE $NAMESPACE_INDEX $PROFILE"

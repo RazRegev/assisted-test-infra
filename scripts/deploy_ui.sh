@@ -12,6 +12,7 @@ export UI_SERVICE_NAME=ocp-metal-ui
 export NO_UI=${NO_UI:-n}
 export PROFILE=${PROFILE:-assisted-installer}
 export NAMESPACE=${NAMESPACE:-assisted-installer}
+export EXTERNAL_PORT=${EXTERNAL_PORT:-y}
 if [ "${CONTAINER_COMMAND}" = "podman" ]; then
     export PODMAN_FLAGS="--pull=always"
 else

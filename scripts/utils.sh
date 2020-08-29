@@ -122,19 +122,42 @@ function add_firewalld_port() {
 
 function run_as_singleton() {
     target=$1
+    interval=${2:-15s}
 
-    lockfile="/tmp/$1.lock"
+    lockfile=/tmp/$target.lock
 
     while [ -e "$lockfile" ]; do
-        echo "Can run only one instance of $target at a time"
-        echo "Waiting for other instances of $target to be completed"
-        sleep 15s
+        echo "Can run only one instance of $target at a time..."
+        echo "Waiting for other instances of $target to be completed..."
+        sleep $interval
     done
 
     trap 'rm "$lockfile"; exit' EXIT INT TERM HUP
-    touch "$lockfile"
+    touch $lockfile
 
     $target
+}
+
+function get_namespace_index() {
+    namespace=$1
+    oc_flag=${2:-}
+
+    index=$(python scripts/indexer.py --action set --namespace $namespace $oc_flag)
+    if [[ -z $index ]]; then
+        all_namespaces=$(python scripts/indexer.py --action list)
+        echo "Maximum number of namespaces allowed are currently running: $all_namespaces"
+        echo "Please remove an old namespace in order to create a new one, run:"
+        echo "make delete_minikube_profile NAMESPACE=<namespace>"
+        exit 1
+    fi
+
+    echo $index
+}
+
+function clear_old_namespace() {
+    namespace=$1
+    kill_port_forwardings $namespace
+    python scripts/indexer.py --action del --namespace $namespace $oc_flag
 }
 
 "$@"

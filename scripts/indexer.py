@@ -9,8 +9,9 @@ class IndexProvider(object):
     """ Provides lock-safe context for get, set and delete actions of unique
         indexes per namespaces. """
 
-    def __init__(self, filepath, lock):
+    def __init__(self, filepath, max_indexes, lock):
         self._filepath = filepath
+        self._max_indexes = max_indexes
         self._lock = lock
         self._in_context = False
         self._ns_to_idx = {}
@@ -51,14 +52,20 @@ class IndexProvider(object):
 
     def set_index(self, ns, idx):
         if self._in_context is False:
-            return
+            return False
+        elif len(self._ns_to_idx) > self._max_indexes:
+            return False
         self._ns_to_idx[ns] = idx
+        return True
 
     def get_index(self, ns):
         return self._ns_to_idx.get(ns)
 
     def del_index(self, ns):
         return bool(self._ns_to_idx.pop(ns, None))
+
+    def list_namespaces(self):
+        return list(self._ns_to_idx.keys())
 
     def clear_all(self):
         self._ns_to_idx.clear()
@@ -69,11 +76,12 @@ class IndexProvider(object):
             if v > idx:
                 return idx
             idx += 1
-        return idx
+        return idx if self._max_indexes > idx else None
 
 
 _indexer = IndexProvider(
     filepath='build/namespaces-indexes.json',
+    max_indexes=3,
     lock=FileLock('/tmp/namespaces-indexes.lock')
 )
 
@@ -83,7 +91,9 @@ def set_idx(ns):
         idx = _indexer.get_index(ns)
         if idx is None:
             idx = _indexer.first_unused_index()
-            _indexer.set_index(ns, idx)
+
+            if idx is None or not _indexer.set_index(ns, idx):
+                idx = ''
 
     sys.stdout.write(str(idx))
 
@@ -111,10 +121,22 @@ def del_idx(ns):
         sys.exit(1)
 
 
+def list_namespaces(*_):
+    with _indexer:
+        namespaces = []
+        for ns in _indexer.list_namespaces():
+            if ns.startswith('OC__'):
+                ns = ns[4:]
+            namespaces.append(ns)
+
+    sys.stdout.write(' '.join(namespaces))
+
+
 actions_to_methods = {
     'set': set_idx,
     'get': get_idx,
-    'del': del_idx
+    'del': del_idx,
+    'list': list_namespaces,
 }
 
 
@@ -140,14 +162,13 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-a', '--action',
-        choices=['get', 'set', 'del'],
+        choices=list(actions_to_methods.keys()),
         required=True,
         help='Action to perform'
     )
     parser.add_argument(
         '-n', '--namespace',
         type=str,
-        required=True,
         help='Target namespace'
     )
     parser.add_argument(
