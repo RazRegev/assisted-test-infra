@@ -139,7 +139,7 @@ run_terraform: copy_terraform_files
 _run_terraform:
 		cd build/terraform/$(CLUSTER_NAME)__$(NAMESPACE) && \
 		terraform init -plugin-dir=/root/.terraform.d/plugins/ && \
-		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform.tfvars.json
+		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform-$(NAMESPACE).tfvars.json
 
 destroy_terraform:
 	skipper make $(SKIPPER_PARAMS) _destroy_terraform
