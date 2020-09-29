@@ -412,7 +412,9 @@ def main():
             if args.set_dns:
                 log.info('setting dns for cluster %s', ui_cluster_name)
                 utils.run_command(
-                    f'make set_dns CLUSTER_NAME={cluster.name}'
+                    f'make _set_dns '
+                    f'CLUSTER_NAME={cluster.name} '
+                    f'NAMESPACE_INDEX={ns_index}'
                 )
         finally:
             if not image_path or args.keep_iso:
