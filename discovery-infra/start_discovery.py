@@ -361,7 +361,7 @@ def main():
     client = None
     cluster = {}
 
-    internal_cluster_name = f'{args.cluster_name or consts.CLUSTER_PREFIX}-{args.namespace}'
+    internal_cluster_name = ui_cluster_name = f'{args.cluster_name or consts.CLUSTER_PREFIX}-{args.namespace}'
     log.info('Cluster name: %s', internal_cluster_name)
 
     if args.managed_dns_domains:
@@ -408,6 +408,12 @@ def main():
     if not args.iso_only:
         try:
             nodes_flow(client, internal_cluster_name, cluster, args.image or image_path)
+
+            if args.set_dns:
+                log.info('setting dns for cluster %s', ui_cluster_name)
+                utils.run_command(
+                    f'make set_dns CLUSTER_NAME={cluster.name}'
+                )
         finally:
             if not image_path or args.keep_iso:
                 return
@@ -601,6 +607,11 @@ if __name__ == "__main__":
     parser.add_argument(
         '--keep-iso',
         help='If set, do not delete generated iso at the end of discovery',
+        action='store_true',
+        default=False
+    )
+    parser.add_argument(
+        '--set-dns',
         action='store_true',
         default=False
     )

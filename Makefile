@@ -158,11 +158,11 @@ validate_namespace:
 
 run: validate_namespace deploy_assisted_service deploy_ui
 
-run_full_flow: run deploy_nodes set_dns
+run_full_flow: run deploy_nodes
 
 redeploy_all: destroy run_full_flow
 
-run_full_flow_with_install: run deploy_nodes_with_install set_dns
+run_full_flow_with_install: run deploy_nodes_with_install
 
 redeploy_all_with_install: destroy run_full_flow_with_install
 
