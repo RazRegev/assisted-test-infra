@@ -414,7 +414,7 @@ def main():
                 utils.run_command(
                     f'make _set_dns '
                     f'CLUSTER_NAME={cluster.name} '
-                    f'NAMESPACE_INDEX={ns_index}'
+                    f'NAMESPACE_INDEX={args.ns_index}'
                 )
         finally:
             if not image_path or args.keep_iso:
