@@ -62,7 +62,7 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    tfvars.update(_secondary_tfvars(master_count, nodes_details))
+   # tfvars.update(_secondary_tfvars(master_count, nodes_details))
 
     with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
@@ -242,8 +242,8 @@ def _create_node_details(cluster_name):
         "libvirt_network_if": args.network_bridge,
         "libvirt_worker_disk": args.worker_disk,
         "libvirt_master_disk": args.master_disk,
-        'libvirt_secondary_network_name': consts.TEST_SECONDARY_NETWORK + args.namespace,
-        'libvirt_secondary_network_if': f's{args.network_bridge}',
+       # 'libvirt_secondary_network_name': consts.TEST_SECONDARY_NETWORK + args.namespace,
+       # 'libvirt_secondary_network_if': f's{args.network_bridge}',
         'provisioning_cidr': _get_provisioning_cidr(),
     }
 
