@@ -151,14 +151,26 @@ class TestWrongBootOrder(BaseTest):
         new_cluster.wait_for_hosts_to_be_in_wrong_boot_order(len(nodes)-1)
         new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
 
-        # Wait for an hour +
+        # Wait for an hour+
         time.sleep(65 * 60)
 
-        # Reboot required into HD
+        # Reboot required nodes into HD
+        bootstrap = nodes.get_bootstrap_node()
         for n in nodes:
+            if n.name == bootstrap.name:
+                continue
             n.shutdown()
             n.set_boot_order(cd_first=False)
             n.start()
+
+        # Wait until bootstrap is in wrong boot order
+        new_cluster.wait_for_one_host_to_be_in_wrong_boot_order()
+        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+
+        # Reboot bootstrap into HD
+        bootstrap.shutdown()
+        bootstrap.set_boot_order(cd_first=False)
+        bootstrap.start()
 
         # Wait until installation continued.
         new_cluster.wait_for_cluster_in_installing_in_progress_status()
