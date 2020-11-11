@@ -213,6 +213,21 @@ class Cluster:
             fall_on_error_status=fall_on_error_status,
         )
 
+    def wait_for_hosts_to_be_in_wrong_boot_order(
+            self,
+            nodes_count=env_variables['num_nodes'],
+            timeout=consts.CLUSTER_INSTALLATION_TIMEOUT,
+            fall_on_error_status=True
+    ):
+        utils.wait_till_all_hosts_are_in_status(
+            client=self.api_client,
+            cluster_id=self.id,
+            statuses=[consts.ClusterStatus.INSTALLING_PENDING_USER_ACTION],
+            nodes_count=nodes_count,
+            timeout=timeout,
+            fall_on_error_status=fall_on_error_status
+        )
+
     def wait_for_ready_to_install(self):
         utils.wait_till_cluster_is_in_status(
             client=self.api_client,
@@ -337,3 +352,17 @@ class Cluster:
         nodes.start_all()
         self.wait_until_hosts_are_discovered(nodes_count=len(nodes))
         return nodes.create_nodes_cluster_hosts_mapping(cluster=self)
+
+    def wait_for_cluster_in_installing_pending_user_action_status(self):
+        utils.wait_till_cluster_is_in_status(
+            client=self.api_client,
+            cluster_id=self.id,
+            statuses=[consts.ClusterStatus.INSTALLING_PENDING_USER_ACTION]
+        )
+
+    def wait_for_cluster_in_installing_in_progress_status(self):
+        utils.wait_till_cluster_is_in_status(
+            client=self.api_client,
+            cluster_id=self.id,
+            statuses=[consts.ClusterStatus.INSTALLING_IN_PROGRESS]
+        )

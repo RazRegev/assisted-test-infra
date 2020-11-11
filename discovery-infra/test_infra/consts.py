@@ -49,6 +49,8 @@ class ClusterStatus:
     ERROR = "error"
     PENDING_FOR_INPUT = "pending-for-input"
     CANCELLED = "cancelled"
+    INSTALLING_PENDING_USER_ACTION = "installing-pending-user-action"
+    INSTALLING_IN_PROGRESS = "installing-in-progress"
 
 
 class HostsProgressStages:
