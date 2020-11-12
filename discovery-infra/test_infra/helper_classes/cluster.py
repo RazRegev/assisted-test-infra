@@ -364,5 +364,5 @@ class Cluster:
         utils.wait_till_cluster_is_in_status(
             client=self.api_client,
             cluster_id=self.id,
-            statuses=[consts.ClusterStatus.INSTALLING_IN_PROGRESS]
+            statuses=[consts.ClusterStatus.INSTALLING]
         )
