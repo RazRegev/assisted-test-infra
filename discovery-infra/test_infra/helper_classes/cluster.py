@@ -353,14 +353,14 @@ class Cluster:
         self.wait_until_hosts_are_discovered(nodes_count=len(nodes))
         return nodes.create_nodes_cluster_hosts_mapping(cluster=self)
 
-    def wait_for_cluster_in_installing_pending_user_action_status(self):
+    def wait_for_cluster_to_be_in_installing_pending_user_action_status(self):
         utils.wait_till_cluster_is_in_status(
             client=self.api_client,
             cluster_id=self.id,
             statuses=[consts.ClusterStatus.INSTALLING_PENDING_USER_ACTION]
         )
 
-    def wait_for_cluster_in_installing_status(self):
+    def wait_for_cluster_to_be_in_installing_status(self):
         utils.wait_till_cluster_is_in_status(
             client=self.api_client,
             cluster_id=self.id,
