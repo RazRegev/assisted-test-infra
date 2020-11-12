@@ -360,7 +360,7 @@ class Cluster:
             statuses=[consts.ClusterStatus.INSTALLING_PENDING_USER_ACTION]
         )
 
-    def wait_for_cluster_in_installing_in_progress_status(self):
+    def wait_for_cluster_in_installing_status(self):
         utils.wait_till_cluster_is_in_status(
             client=self.api_client,
             cluster_id=self.id,

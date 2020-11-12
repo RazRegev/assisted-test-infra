@@ -21,7 +21,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until wrong boot order
         new_cluster.wait_for_one_host_to_be_in_wrong_boot_order()
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot required nodes into HD
         node.shutdown()
@@ -29,7 +29,7 @@ class TestWrongBootOrder(BaseTest):
         node.start()
 
         # wait until all nodes are in Installed status, will fail in case one host in error
-        new_cluster.wait_for_cluster_in_installing_in_progress_status()
+        new_cluster.wait_for_cluster_in_installing_status()
         new_cluster.wait_for_hosts_to_install()
         new_cluster.wait_for_install()
 
@@ -49,7 +49,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until wrong boot order - all hosts except bootstrap
         new_cluster.wait_for_hosts_to_be_in_wrong_boot_order(len(nodes)-1)
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot required nodes into HD
         bootstrap = nodes.get_bootstrap_node()
@@ -77,7 +77,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until bootstrap is in wrong boot order
         new_cluster.wait_for_one_host_to_be_in_wrong_boot_order()
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot bootstrap into HD
         bootstrap.shutdown()
@@ -105,7 +105,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until wrong boot order - all hosts except bootstrap
         new_cluster.wait_for_hosts_to_be_in_wrong_boot_order(len(nodes)-1)
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot required nodes into HD
         bootstrap = nodes.get_bootstrap_node()
@@ -121,7 +121,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until bootstrap is in wrong boot order
         new_cluster.wait_for_one_host_to_be_in_wrong_boot_order()
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot bootstrap into HD
         bootstrap.shutdown()
@@ -149,7 +149,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until wrong boot order - all hosts except bootstrap
         new_cluster.wait_for_hosts_to_be_in_wrong_boot_order(len(nodes)-1)
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Wait for an hour+
         time.sleep(65 * 60)
@@ -165,7 +165,7 @@ class TestWrongBootOrder(BaseTest):
 
         # Wait until bootstrap is in wrong boot order
         new_cluster.wait_for_one_host_to_be_in_wrong_boot_order()
-        new_cluster.wait_for_cluster_in_installing_pending_user_action_status()
+        new_cluster.wait_for_cluster_in_installing_status()
 
         # Reboot bootstrap into HD
         bootstrap.shutdown()
