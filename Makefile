@@ -88,7 +88,7 @@ endif
 
 ifdef NONE_PLATFORM_MODE
     SECONDARY_MASTERS_COUNT := $(or $(SECONDARY_MASTERS_COUNT),1)
-    NONE_PLATFORM_PARAMS = --node-platform-mode --sec-masters-count=$(SECONDARY_MASTERS_COUNT)
+    NONE_PLATFORM_PARAMS = --none-platform-mode --sec-masters-count=$(SECONDARY_MASTERS_COUNT)
 endif
 
 SSO_URL := $(or $(SSO_URL), https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token)
