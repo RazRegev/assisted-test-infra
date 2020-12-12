@@ -162,7 +162,7 @@ resource "libvirt_domain" "master" {
   }
 }
 
-resource "libvirt_domain" "master-sec" {
+resource "libvirt_domain" "master_sec" {
   count = var.sec_master_count
 
   name = "${var.cluster_name}-master-sec-${count.index}"
@@ -197,6 +197,7 @@ resource "libvirt_domain" "master-sec" {
     dev = ["hd", "cdrom"]
   }
 }
+
 
 resource "libvirt_domain" "worker" {
   count = var.worker_count
