@@ -165,7 +165,7 @@ resource "libvirt_domain" "master" {
 resource "libvirt_domain" "master_sec" {
   count = var.sec_master_count
 
-  name = "${var.cluster_name}-master-sec-${count.index}"
+  name = "${var.cluster_name}-master_sec-${count.index}"
 
   memory = var.libvirt_master_memory
   vcpu   = var.libvirt_master_vcpu
