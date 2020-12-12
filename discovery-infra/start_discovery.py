@@ -8,6 +8,7 @@ import json
 import os
 import time
 import uuid
+import requests
 from functools import partial
 from distutils.dir_util import copy_tree
 import distutils.util
@@ -101,7 +102,8 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    tfvars.update(_secondary_tfvars(master_count, nodes_details, machine_net))
+    secondary_masters_count = master_count if not args.none_platform_mode else args.sec_masters_count
+    tfvars.update(_secondary_tfvars(secondary_masters_count, nodes_details, machine_net))
 
     with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
@@ -154,7 +156,6 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
             'libvirt_secondary_worker_ips': utils.create_empty_nested_list(worker_count),
             'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count)
         }
-
 
 # Run make run terraform -> creates vms
 def create_nodes(
@@ -460,6 +461,14 @@ def _extract_nodes_from_tf_state(tf_state, network_name, role):
 
     return data
 
+
+def _enable_none_platform_installation(base_url, cluster_id):
+    log.info('Enabling user managed networking param')
+    url = f'{base_url}/api/assisted-install/v1/clusters/{cluster_id}'
+    r = requests.patch(url, params={'user-managed-networking': true}, timeout=10)
+    r.raise_for_errors()
+
+
 def execute_day1_flow(cluster_name):
     client = None
     cluster = {}
@@ -481,11 +490,11 @@ def execute_day1_flow(cluster_name):
 
     image_path = None
 
+    assisted_url = utils.get_assisted_service_url_by_args(args=args)
+
     if not args.image:
         utils.recreate_folder(consts.IMAGE_FOLDER, force_recreate=False)
-        client = assisted_service_api.create_client(
-            url=utils.get_assisted_service_url_by_args(args=args)
-        )
+        client = assisted_service_api.create_client(url=assisted_url)
         if args.cluster_id:
             cluster = client.cluster_get(cluster_id=args.cluster_id)
         else:
@@ -503,6 +512,9 @@ def execute_day1_flow(cluster_name):
             image_path=image_path,
             ssh_key=args.ssh_key,
         )
+
+    if args.none_platform_mode:
+        _enable_none_platform_installation(assisted_url, cluster.id)
 
     # Iso only, cluster will be up and iso downloaded but vm will not be created
     if not args.iso_only:
@@ -524,6 +536,11 @@ def main():
     cluster_id = args.cluster_id
     if args.day1_cluster:
         cluster_id = execute_day1_flow(cluster_name)
+
+    # None platform currently not supporting day2
+    if args.none_platform_mode:
+        return
+
     if args.day2_cloud_cluster:
         day2.execute_day2_cloud_flow(cluster_id, args)
     if args.day2_ocp_cluster:
@@ -796,6 +813,19 @@ if __name__ == "__main__":
         type=str,
         default=''
     )
+    parser.add_argument(
+        "--none-platform-mode",
+        help='Run in None platform mode',
+        type=bool,
+        action='store_true'
+    )
+    parser.add_argument(
+        "--sec-masters-count",
+        help='None platform mode only: Number of masters belongs only to the secondary network (in addition to masters count)',
+        type=bool,
+        action='store_true'
+    )
+
     oc_utils.extend_parser_with_oc_arguments(parser)
     args = parser.parse_args()
     if not args.pull_secret and args.install_cluster:

@@ -24,28 +24,105 @@ resource "libvirt_volume" "worker" {
 
 resource "libvirt_network" "net" {
   name = var.libvirt_network_name
-  mode   = "nat"
-  bridge = var.libvirt_network_if
+  mode   = "route"
+  bridge = "virbr126"
   mtu = var.libvirt_network_mtu
   domain = var.cluster_domain
   addresses = var.machine_cidr_addresses
   autostart = true
 
   dns {
-    hosts  {
-      ip = var.api_vip
-      hostname = "api.${var.cluster_name}.${var.cluster_domain}"
-    }
+    dynamic "hosts" {
+      for_each = concat(
+      data.libvirt_network_dns_host_template.masters.*.rendered,
+      data.libvirt_network_dns_host_template.masters_int.*.rendered,
+      data.libvirt_network_dns_host_template.masters_console.*.rendered,
+      data.libvirt_network_dns_host_template.masters_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_int.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_console.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_oauth.*.rendered,
+      )
+      content {
+        hostname = hosts.value.hostname
+        ip       = hosts.value.ip
   }
 }
 
 
 resource "libvirt_network" "secondary_net" {
   name = var.libvirt_secondary_network_name
-  mode   = "nat"
-  bridge = var.libvirt_secondary_network_if
+  mode   = "route"
+  bridge = "virbr141"
   addresses = var.provisioning_cidr_addresses
   autostart = true
+  mtu = var.libvirt_network_mtu
+  dns {
+    dynamic "hosts" {
+      for_each = concat(
+      data.libvirt_network_dns_host_template.masters.*.rendered,
+      data.libvirt_network_dns_host_template.masters_int.*.rendered,
+      data.libvirt_network_dns_host_template.masters_console.*.rendered,
+      data.libvirt_network_dns_host_template.masters_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_int.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_console.*.rendered,
+      data.libvirt_network_dns_host_template.masters_sec_oauth.*.rendered,
+      )
+      content {
+        hostname = hosts.value.hostname
+        ip       = hosts.value.ip
+      }
+    }
+  }
+}
+
+data "libvirt_network_dns_host_template" "masters" {
+  count    = var.master_count
+  ip       = var.libvirt_master_ips[count.index]
+  hostname = "api.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_int" {
+  count    = var.master_count
+  ip       = var.libvirt_master_ips[count.index]
+  hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_console" {
+  count    = var.master_count
+  ip       = var.libvirt_master_ips[count.index]
+  hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_oauth" {
+  count    = var.master_count
+  ip       = var.libvirt_master_ips[count.index]
+  hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_sec" {
+  count    = var.sec_master_count
+  ip       = var.libvirt_secondary_master_ips[count.index]
+  hostname = "api.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_sec_int" {
+  count    = var.sec_master_count
+  ip       = var.libvirt_secondary_master_ips[count.index]
+  hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_sec_console" {
+   count    = var.sec_master_count
+   ip       = var.libvirt_secondary_master_ips[count.index]
+   hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "masters_sec_oauth" {
+  count    = var.sec_master_count
+  ip       = var.libvirt_secondary_master_ips[count.index]
+  hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
 resource "libvirt_domain" "master" {
@@ -80,6 +157,37 @@ resource "libvirt_domain" "master" {
     addresses  = var.libvirt_master_ips[count.index]
   }
 
+  boot_device{
+    dev = ["hd", "cdrom"]
+  }
+}
+
+resource "libvirt_domain" "master-sec" {
+  count = var.sec_master_count
+
+  name = "${var.cluster_name}-master-sec-${count.index}"
+
+  memory = var.libvirt_master_memory
+  vcpu   = var.libvirt_master_vcpu
+  running = var.running
+
+  disk {
+    volume_id = element(libvirt_volume.master.*.id, count.index)
+
+  }
+  disk {
+    file = var.image_path
+  }
+
+  console {
+    type        = "pty"
+    target_port = 0
+  }
+
+  cpu = {
+    mode = "host-passthrough"
+  }
+
   network_interface {
     network_name = libvirt_network.secondary_net.name
     addresses  = var.libvirt_secondary_master_ips[count.index]
@@ -89,7 +197,6 @@ resource "libvirt_domain" "master" {
     dev = ["hd", "cdrom"]
   }
 }
-
 
 resource "libvirt_domain" "worker" {
   count = var.worker_count
@@ -121,11 +228,6 @@ resource "libvirt_domain" "worker" {
     network_name = libvirt_network.net.name
     hostname   = "${var.cluster_name}-worker-${count.index}.${var.cluster_domain}"
     addresses  = var.libvirt_worker_ips[count.index]
-  }
-
-  network_interface {
-    network_name = libvirt_network.secondary_net.name
-    addresses  = var.libvirt_secondary_worker_ips[count.index]
   }
 
   boot_device{
