@@ -8,6 +8,12 @@ variable "master_count" {
   description = "The identifier for the cluster."
 }
 
+variable "sec_master_count" {
+  type        = number
+  description = "The identifier for the secondary master."
+}
+
+
 variable "worker_count" {
   type        = number
   description = "Number of workers."
