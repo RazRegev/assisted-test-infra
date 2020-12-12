@@ -465,7 +465,7 @@ def _extract_nodes_from_tf_state(tf_state, network_name, role):
 def _enable_none_platform_installation(base_url, cluster_id):
     log.info('Enabling user managed networking param')
     url = f'{base_url}/api/assisted-install/v1/clusters/{cluster_id}'
-    r = requests.patch(url, params={'user-managed-networking': True}, timeout=10)
+    r = requests.patch(url, json={'user-managed-networking': True}, timeout=10)
     r.raise_for_status()
 
 
