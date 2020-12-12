@@ -816,7 +816,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--none-platform-mode",
         help='Run in None platform mode',
-        type=bool,
         action='store_true'
     )
     parser.add_argument(
