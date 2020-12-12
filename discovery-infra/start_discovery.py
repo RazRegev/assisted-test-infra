@@ -822,8 +822,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sec-masters-count",
         help='None platform mode only: Number of masters belongs only to the secondary network (in addition to masters count)',
-        type=bool,
-        action='store_true'
+        type=int,
+        default=1
     )
 
     oc_utils.extend_parser_with_oc_arguments(parser)
