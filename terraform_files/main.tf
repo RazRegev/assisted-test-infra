@@ -46,6 +46,8 @@ resource "libvirt_network" "net" {
       content {
         hostname = hosts.value.hostname
         ip       = hosts.value.ip
+      }
+    }
   }
 }
 
