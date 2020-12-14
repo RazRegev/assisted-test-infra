@@ -105,10 +105,10 @@ def fill_tfvars(
     if args.none_platform_mode:
         # in none platform mode secondary network is reserved only to "secondary masters"
         tfvars.update(_secondary_tfvars(
-                args.sec_master_count,
+                args.sec_masters_count,
                 nodes_details,
                 machine_net,
-                secondary_master_count=args.sec_master_count
+                secondary_master_count=args.sec_masters_count
             )
         )
     else:
@@ -833,7 +833,7 @@ if __name__ == "__main__":
         "--sec-masters-count",
         help='None platform mode only: Number of masters belongs only to the secondary network (in addition to masters count)',
         type=int,
-        default=1
+        default=0
     )
 
     oc_utils.extend_parser_with_oc_arguments(parser)
