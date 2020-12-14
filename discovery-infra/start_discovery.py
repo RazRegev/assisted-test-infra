@@ -159,13 +159,13 @@ def _secondary_tfvars(master_count, nodes_details, machine_net, secondary_master
                 master_count,
                 starting_ip_addr=secondary_master_starting_ip
             ),
-            'sec_masters_count': sec_masters_count
+            'sec_masters_count': secondary_master_count
         }
     else:
         return {
             'libvirt_secondary_worker_ips': utils.create_empty_nested_list(worker_count),
             'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count),
-            'sec_masters_count': sec_masters_count
+            'sec_masters_count': secondary_master_count
         }
 
 # Run make run terraform -> creates vms
