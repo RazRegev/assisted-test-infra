@@ -102,14 +102,23 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    secondary_masters_count = master_count if not args.none_platform_mode else args.sec_masters_count
-    tfvars.update(_secondary_tfvars(secondary_masters_count, nodes_details, machine_net))
+    if args.none_platform_mode:
+        # in none platform mode secondary network is reserved only to "secondary masters"
+        tfvars.update(_secondary_tfvars(
+                args.sec_masters_count,
+                nodes_details,
+                machine_net,
+                secondary_master_count=args.sec_masters_count
+            )
+        )
+    else:
+        tfvars.update(_secondary_tfvars(master_count, nodes_details, machine_net))
 
     with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
 
 
-def _secondary_tfvars(master_count, nodes_details, machine_net):
+def _secondary_tfvars(master_count, nodes_details, machine_net, secondary_master_count=0):
     if machine_net.has_ip_v4:
         secondary_master_starting_ip = str(
             ipaddress.ip_address(
@@ -149,12 +158,14 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
             'libvirt_secondary_master_ips': utils.create_ip_address_nested_list(
                 master_count,
                 starting_ip_addr=secondary_master_starting_ip
-            )
+            ),
+            'sec_masters_count': sec_masters_count
         }
     else:
         return {
             'libvirt_secondary_worker_ips': utils.create_empty_nested_list(worker_count),
-            'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count)
+            'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count),
+            'sec_masters_count': sec_masters_count
         }
 
 # Run make run terraform -> creates vms
