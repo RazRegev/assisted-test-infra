@@ -15,6 +15,13 @@ resource "libvirt_volume" "master" {
   size           =  var.libvirt_master_disk
 }
 
+resource "libvirt_volume" "master_sec" {
+  count          = var.sec_master_count
+  name           = "${var.cluster_name}-master-sec-${count.index}"
+  pool           = libvirt_pool.storage_pool.name
+  size           =  var.libvirt_master_disk
+}
+
 resource "libvirt_volume" "worker" {
   count          = var.worker_count
   name           = "${var.cluster_name}-worker-${count.index}"
@@ -174,8 +181,7 @@ resource "libvirt_domain" "master_sec" {
   running = var.running
 
   disk {
-    volume_id = element(libvirt_volume.master.*.id, count.index)
-
+    volume_id = element(libvirt_volume.master_sec.*.id, count.index)
   }
   disk {
     file = var.image_path
