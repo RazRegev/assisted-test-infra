@@ -8,6 +8,7 @@ import json
 import os
 import time
 import uuid
+import requests
 from functools import partial
 from distutils.dir_util import copy_tree
 import distutils.util
@@ -101,13 +102,20 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    tfvars.update(_secondary_tfvars(master_count, nodes_details, machine_net))
+    tfvars.update(
+        _secondary_tfvars(
+            nodes_details['secondary_master_count'] or master_count,
+            nodes_details['secondary_worker_count'] or nodes_details['worker_count'],
+            nodes_details,
+            machine_net
+        )
+    )
 
     with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
 
 
-def _secondary_tfvars(master_count, nodes_details, machine_net):
+def _secondary_tfvars(master_count, worker_count, nodes_details, machine_net):
     if machine_net.has_ip_v4:
         secondary_master_starting_ip = str(
             ipaddress.ip_address(
@@ -137,9 +145,12 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
             + int(master_count)
         )
 
-    worker_count = nodes_details['worker_count']
+    vars = {
+        'secondary_master_count': nodes_details['secondary_master_count'],
+        'secondary_worker_count': nodes_details['secondary_worker_count']
+    }
     if machine_net.has_ip_v4:
-        return {
+        vars.update({
             'libvirt_secondary_worker_ips': utils.create_ip_address_nested_list(
                 worker_count,
                 starting_ip_addr=secondary_worker_starting_ip
@@ -148,12 +159,14 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
                 master_count,
                 starting_ip_addr=secondary_master_starting_ip
             )
-        }
+        })
     else:
-        return {
+        vars.update({
             'libvirt_secondary_worker_ips': utils.create_empty_nested_list(worker_count),
-            'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count)
-        }
+            'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count),
+        })
+
+    return vars
 
 
 # Run make run terraform -> creates vms
@@ -321,7 +334,9 @@ def _create_node_details(cluster_name):
         "libvirt_worker_disk": args.worker_disk,
         "libvirt_master_disk": args.master_disk,
         'libvirt_secondary_network_name': consts.TEST_SECONDARY_NETWORK + args.namespace,
-        'libvirt_secondary_network_if': f's{args.network_bridge}'
+        'libvirt_secondary_network_if': f's{args.network_bridge}',
+        'secondary_master_count': args.sec_master_count,
+        'secondary_worker_count': args.sec_worker_count
     }
 
 
@@ -370,7 +385,13 @@ def nodes_flow(client, cluster_name, cluster, image_path):
 
     tf_folder = utils.get_tf_folder(cluster_name, args.namespace)
     utils.recreate_folder(tf_folder)
-    copy_tree(consts.TF_TEMPLATE, tf_folder)
+
+    is_none_platform = args.sec_master_count or args.sec_worker_count
+    log.info('None platform mode: %s', is_none_platform)
+
+    tf_template_dir = consts.TF_TEMPLATE_NONE_PLATFORM_FLOW if is_none_platform else consts.TF_TEMPLATE_REGULAR_FLOW
+    copy_tree(tf_template_dir, tf_folder)
+
     tf = terraform_utils.TerraformUtils(working_dir=tf_folder)
     machine_net = MachineNetwork(args.ipv4, args.ipv6, args.vm_network_cidr, args.vm_network_cidr6, args.ns_index)
 
@@ -460,6 +481,14 @@ def _extract_nodes_from_tf_state(tf_state, network_name, role):
 
     return data
 
+
+def _enable_multiple_networks_installation(base_url, cluster_id):
+    log.info('Enabling user managed networking param')
+    url = f'{base_url}/api/assisted-install/v1/clusters/{cluster_id}'
+    res = requests.patch(url, json={'user-managed-networking': True}, timeout=10)
+    res.raise_for_status()
+
+
 def execute_day1_flow(cluster_name):
     client = None
     cluster = {}
@@ -481,11 +510,11 @@ def execute_day1_flow(cluster_name):
 
     image_path = None
 
+    assisted_url = utils.get_assisted_service_url_by_args(args=args)
+
     if not args.image:
         utils.recreate_folder(consts.IMAGE_FOLDER, force_recreate=False)
-        client = assisted_service_api.create_client(
-            url=utils.get_assisted_service_url_by_args(args=args)
-        )
+        client = assisted_service_api.create_client(url=assisted_url)
         if args.cluster_id:
             cluster = client.cluster_get(cluster_id=args.cluster_id)
         else:
@@ -503,6 +532,10 @@ def execute_day1_flow(cluster_name):
             image_path=image_path,
             ssh_key=args.ssh_key,
         )
+
+    # in none platform mode secondary network belongs only to secondary masters and secondary workers
+    if args.sec_master_count or args.sec_worker_count:
+        _enable_multiple_networks_installation(assisted_url, cluster.id)
 
     # Iso only, cluster will be up and iso downloaded but vm will not be created
     if not args.iso_only:
@@ -524,6 +557,11 @@ def main():
     cluster_id = args.cluster_id
     if args.day1_cluster:
         cluster_id = execute_day1_flow(cluster_name)
+
+    # None platform currently not supporting day2
+    if args.sec_master_count or args.sec_worker_count:
+        return
+
     if args.day2_cloud_cluster:
         day2.execute_day2_cloud_flow(cluster_id, args)
     if args.day2_ocp_cluster:
@@ -796,6 +834,19 @@ if __name__ == "__main__":
         type=str,
         default=''
     )
+    parser.add_argument(
+        "--sec-master-count",
+        help='Number of masters belongs only to the secondary network',
+        type=int,
+        default=0
+    )
+    parser.add_argument(
+        "--sec-worker-count",
+        help='Number of workers belongs only to the secondary network',
+        type=int,
+        default=0
+    )
+
     oc_utils.extend_parser_with_oc_arguments(parser)
     args = parser.parse_args()
     if not args.pull_secret and args.install_cluster:
