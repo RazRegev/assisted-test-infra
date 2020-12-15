@@ -52,10 +52,18 @@ resource "libvirt_network" "net" {
       data.libvirt_network_dns_host_template.masters_int.*.rendered,
       data.libvirt_network_dns_host_template.masters_console.*.rendered,
       data.libvirt_network_dns_host_template.masters_oauth.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_int.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_console.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_int.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_console.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.workers.*.rendered,
+      data.libvirt_network_dns_host_template.workers_int.*.rendered,
+      data.libvirt_network_dns_host_template.workers_console.*.rendered,
+      data.libvirt_network_dns_host_template.workers_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_int.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_console.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_oauth.*.rendered
       )
       content {
         hostname = hosts.value.hostname
@@ -79,10 +87,18 @@ resource "libvirt_network" "secondary_net" {
       data.libvirt_network_dns_host_template.masters_int.*.rendered,
       data.libvirt_network_dns_host_template.masters_console.*.rendered,
       data.libvirt_network_dns_host_template.masters_oauth.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_int.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_console.*.rendered,
-      data.libvirt_network_dns_host_template.masters_sec_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_int.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_console.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_masters_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.workers.*.rendered,
+      data.libvirt_network_dns_host_template.workers_int.*.rendered,
+      data.libvirt_network_dns_host_template.workers_console.*.rendered,
+      data.libvirt_network_dns_host_template.workers_oauth.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_int.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_console.*.rendered,
+      data.libvirt_network_dns_host_template.secondary_workers_oauth.*.rendered
       )
       content {
         hostname = hosts.value.hostname
@@ -116,6 +132,30 @@ data "libvirt_network_dns_host_template" "masters_oauth" {
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
+data "libvirt_network_dns_host_template" "workers" {
+  count    = var.worker_count
+  ip       = var.libvirt_worker_ips[count.index][0]
+  hostname = "api.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "workers_int" {
+  count    = var.worker_count
+  ip       = var.libvirt_worker_ips[count.index][0]
+  hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "workers_console" {
+  count    = var.worker_count
+  ip       = var.libvirt_worker_ips[count.index][0]
+  hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "workers_oauth" {
+  count    = var.worker_count
+  ip       = var.libvirt_worker_ips[count.index][0]
+  hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
 data "libvirt_network_dns_host_template" "secondary_master" {
   count    = var.secondary_master_count
   ip       = var.libvirt_secondary_master_ips[count.index][0]
@@ -137,6 +177,30 @@ data "libvirt_network_dns_host_template" "secondary_masters_console" {
 data "libvirt_network_dns_host_template" "secondary_masters_oauth" {
   count    = var.sec_master_count
   ip       = var.libvirt_secondary_master_ips[count.index][0]
+  hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "secondary_workers" {
+  count    = var.secondary_worker_count
+  ip       = var.libvirt_secondary_worker_ips[count.index][0]
+  hostname = "api.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "secondary_workers_int" {
+  count    = var.secondary_worker_count
+  ip       = var.libvirt_secondary_worker_ips[count.index][0]
+  hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "secondary_workers_console" {
+  count    = var.secondary_worker_count
+  ip       = var.libvirt_secondary_worker_ips[count.index][0]
+  hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
+}
+
+data "libvirt_network_dns_host_template" "secondary_workers_oauth" {
+  count    = var.secondary_worker_count
+  ip       = var.libvirt_secondary_worker_ips[count.index][0]
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
