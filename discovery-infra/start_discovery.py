@@ -104,10 +104,9 @@ def fill_tfvars(
 
     tfvars.update(
         _secondary_tfvars(
-            master_count,
-            nodes_details['worker_count'],
-            args.sec_master_count,
-            args.sec_worker_count,
+            nodes_details['sec_master_count'] or master_count,
+            nodes_details['sec_worker_count'] or nodes_details['worker_count'],
+            nodes_details,
             machine_net
         )
     )
@@ -116,7 +115,7 @@ def fill_tfvars(
         json.dump(tfvars, _file)
 
 
-def _secondary_tfvars(master_count, worker_count, secondary_master_count, secondary_worker_count, machine_net):
+def _secondary_tfvars(master_count, worker_count, nodes_details, machine_net):
     if machine_net.has_ip_v4:
         secondary_master_starting_ip = str(
             ipaddress.ip_address(
@@ -147,8 +146,8 @@ def _secondary_tfvars(master_count, worker_count, secondary_master_count, second
         )
 
     vars = {
-        'secondary_master_count': secondary_master_count,
-        'secondary_worker_count': secondary_worker_count
+        'secondary_master_count': nodes_details['secondary_master_count'],
+        'secondary_worker_count': nodes_details['secondary_worker_count']
     }
     if machine_net.has_ip_v4:
         vars.update({
@@ -335,7 +334,9 @@ def _create_node_details(cluster_name):
         "libvirt_worker_disk": args.worker_disk,
         "libvirt_master_disk": args.master_disk,
         'libvirt_secondary_network_name': consts.TEST_SECONDARY_NETWORK + args.namespace,
-        'libvirt_secondary_network_if': f's{args.network_bridge}'
+        'libvirt_secondary_network_if': f's{args.network_bridge}',
+        'sec_master_count': args.sec_master_count,
+        'sec_worker_count': args.sec_worker_count
     }
 
 
