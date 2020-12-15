@@ -385,7 +385,11 @@ def nodes_flow(client, cluster_name, cluster, image_path):
 
     tf_folder = utils.get_tf_folder(cluster_name, args.namespace)
     utils.recreate_folder(tf_folder)
-    copy_tree(consts.TF_TEMPLATE, tf_folder)
+
+    is_none_platform = args.sec_master_count or args.sec_worker_count
+    tf_template_dir = consts.TF_TEMPLATE_NONE_PLATFORM_FLOW if is_none_platform else consts.TF_TEMPLATE_REGULAR_FLOW
+    copy_tree(tf_template_dir, tf_folder)
+
     tf = terraform_utils.TerraformUtils(working_dir=tf_folder)
     machine_net = MachineNetwork(args.ipv4, args.ipv6, args.vm_network_cidr, args.vm_network_cidr6, args.ns_index)
 
