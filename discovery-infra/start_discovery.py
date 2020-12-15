@@ -102,23 +102,20 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    if args.none_platform_mode:
-        # in none platform mode secondary network is reserved only to "secondary masters"
-        tfvars.update(_secondary_tfvars(
-                args.sec_masters_count,
-                nodes_details,
-                machine_net,
-                secondary_master_count=args.sec_masters_count
-            )
-        )
-    else:
-        tfvars.update(_secondary_tfvars(master_count, nodes_details, machine_net))
+    tfvars.update(_secondary_tfvars(
+        master_count,
+        nodes_details['worker_count'],
+        args.sec_master_count,
+        args.sec_worker_count,
+        nodes_details,
+         machine_net)
+    )
 
     with open(tfvars_json_file, "w") as _file:
         json.dump(tfvars, _file)
 
 
-def _secondary_tfvars(master_count, nodes_details, machine_net, secondary_master_count=0):
+def _secondary_tfvars(master_count, worker_count, secondary_master_count, secondary_worker_count, machine_net):
     if machine_net.has_ip_v4:
         secondary_master_starting_ip = str(
             ipaddress.ip_address(
@@ -148,9 +145,12 @@ def _secondary_tfvars(master_count, nodes_details, machine_net, secondary_master
             + int(master_count)
         )
 
-    worker_count = nodes_details['worker_count']
+    vars = {
+        'secondary_master_count': secondary_master_count,
+        'secondary_worker_count': secondary_worker_count
+    }
     if machine_net.has_ip_v4:
-        return {
+        vars.update({
             'libvirt_secondary_worker_ips': utils.create_ip_address_nested_list(
                 worker_count,
                 starting_ip_addr=secondary_worker_starting_ip
@@ -158,15 +158,16 @@ def _secondary_tfvars(master_count, nodes_details, machine_net, secondary_master
             'libvirt_secondary_master_ips': utils.create_ip_address_nested_list(
                 master_count,
                 starting_ip_addr=secondary_master_starting_ip
-            ),
-            'sec_master_count': secondary_master_count
-        }
+            )
+        })
     else:
-        return {
+        vars.update({
             'libvirt_secondary_worker_ips': utils.create_empty_nested_list(worker_count),
             'libvirt_secondary_master_ips': utils.create_empty_nested_list(master_count),
-            'sec_master_count': secondary_master_count
-        }
+        })
+
+    return vars
+
 
 # Run make run terraform -> creates vms
 def create_nodes(
@@ -473,7 +474,7 @@ def _extract_nodes_from_tf_state(tf_state, network_name, role):
     return data
 
 
-def _enable_none_platform_installation(base_url, cluster_id):
+def _enable_multiple_networks_installation(base_url, cluster_id):
     log.info('Enabling user managed networking param')
     url = f'{base_url}/api/assisted-install/v1/clusters/{cluster_id}'
     res = requests.patch(url, json={'user-managed-networking': True}, timeout=10)
@@ -524,8 +525,8 @@ def execute_day1_flow(cluster_name):
             ssh_key=args.ssh_key,
         )
 
-    if args.none_platform_mode:
-        _enable_none_platform_installation(assisted_url, cluster.id)
+    if args.sec_master_count or args.sec_worker_count:
+        _enable_multiple_networks_installation(assisted_url, cluster.id)
 
     # Iso only, cluster will be up and iso downloaded but vm will not be created
     if not args.iso_only:
@@ -549,7 +550,7 @@ def main():
         cluster_id = execute_day1_flow(cluster_name)
 
     # None platform currently not supporting day2
-    if args.none_platform_mode:
+    if args.sec_master_count or args.sec_worker_count:
         return
 
     if args.day2_cloud_cluster:
@@ -825,13 +826,14 @@ if __name__ == "__main__":
         default=''
     )
     parser.add_argument(
-        "--none-platform-mode",
-        help='Run in None platform mode',
-        action='store_true'
+        "--sec-master-count",
+        help='Number of masters belongs only to the secondary network',
+        type=int,
+        default=0
     )
     parser.add_argument(
-        "--sec-masters-count",
-        help='None platform mode only: Number of masters belongs only to the secondary network (in addition to masters count)',
+        "--sec-worker-count",
+        help='Number of workers belongs only to the secondary network',
         type=int,
         default=0
     )
