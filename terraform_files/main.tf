@@ -342,7 +342,7 @@ resource "libvirt_domain" "secondary_worker" {
 
   network_interface {
     network_name = libvirt_network.secondary_net.name
-    addresses    = var.libvirt_secondary_master_ips[count.index]
+    addresses    = var.libvirt_secondary_worker_ips[count.index]
   }
 
   boot_device{
