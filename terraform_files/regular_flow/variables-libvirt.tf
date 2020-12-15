@@ -8,16 +8,6 @@ variable "master_count" {
   description = "The identifier for the cluster."
 }
 
-variable "secondary_master_count" {
-  type        = number
-  description = "The identifier for the secondary master."
-}
-
-variable "secondary_worker_count" {
-  type        = number
-  description = "The identifier for the secondary worker."
-}
-
 variable "worker_count" {
   type        = number
   description = "Number of workers."
@@ -78,14 +68,14 @@ variable "libvirt_secondary_master_ips" {
   description = "the list of desired master second interface ips. Must match master_count"
 }
 
-variable "libvirt_secondary_worker_ips" {
-  type        = list(list(string))
-  description = "the list of desired worker second interface ips. Must match worker_count"
-}
-
 variable "libvirt_worker_ips" {
   type        = list(list(string))
   description = "the list of desired worker ips. Must match master_count"
+}
+
+variable "libvirt_secondary_worker_ips" {
+  type        = list(list(string))
+  description = "the list of desired worker second interface ips. Must match master_count"
 }
 
 variable "api_vip" {
