@@ -236,10 +236,16 @@ resource "libvirt_domain" "master" {
     addresses  = var.libvirt_master_ips[count.index]
   }
 
+  network_interface {
+    network_name = libvirt_network.secondary_net.name
+    addresses  = var.libvirt_secondary_master_ips[count.index]
+  }
+
   boot_device{
     dev = ["hd", "cdrom"]
   }
 }
+
 
 resource "libvirt_domain" "worker" {
   count = var.worker_count
@@ -271,6 +277,11 @@ resource "libvirt_domain" "worker" {
     network_name = libvirt_network.net.name
     hostname   = "${var.cluster_name}-worker-${count.index}.${var.cluster_domain}"
     addresses  = var.libvirt_worker_ips[count.index]
+  }
+
+  network_interface {
+    network_name = libvirt_network.secondary_net.name
+    addresses  = var.libvirt_secondary_worker_ips[count.index]
   }
 
   boot_device{

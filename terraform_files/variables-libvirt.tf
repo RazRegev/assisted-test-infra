@@ -75,7 +75,12 @@ variable "libvirt_master_ips" {
 
 variable "libvirt_secondary_master_ips" {
   type        = list(list(string))
-  description = "the list of desired master second interface ips. Must match master_count"
+  description = "the list of desired master second interface ips. Must match master_count + sec_master_count"
+}
+
+variable "libvirt_secondary_worker_ips" {
+  type        = list(list(string))
+  description = "the list of desired worker second interface ips. Must match worker_count + sec_worker_count"
 }
 
 variable "libvirt_worker_ips" {
