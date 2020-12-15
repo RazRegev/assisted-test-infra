@@ -102,13 +102,14 @@ def fill_tfvars(
     tfvars['libvirt_storage_pool_path'] = storage_path
     tfvars.update(nodes_details)
 
-    tfvars.update(_secondary_tfvars(
-        master_count,
-        nodes_details['worker_count'],
-        args.sec_master_count,
-        args.sec_worker_count,
-        nodes_details,
-         machine_net)
+    tfvars.update(
+        _secondary_tfvars(
+            master_count,
+            nodes_details['worker_count'],
+            args.sec_master_count,
+            args.sec_worker_count,
+            machine_net
+        )
     )
 
     with open(tfvars_json_file, "w") as _file:
