@@ -151,7 +151,6 @@ EOF
   sudo chmod +x $fname
 }
 
-
 function additional_configs() {
     if [ "${ADD_USER_TO_SUDO}" != "n" ]; then
         current_user=$(whoami)
@@ -184,5 +183,4 @@ install_skipper
 config_firewalld
 config_squid
 fix_ipv6_routing
-configure_iptables
 additional_configs
