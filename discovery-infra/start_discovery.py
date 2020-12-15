@@ -387,6 +387,8 @@ def nodes_flow(client, cluster_name, cluster, image_path):
     utils.recreate_folder(tf_folder)
 
     is_none_platform = args.sec_master_count or args.sec_worker_count
+    log.info('None platform mode: %s', is_none_platform)
+
     tf_template_dir = consts.TF_TEMPLATE_NONE_PLATFORM_FLOW if is_none_platform else consts.TF_TEMPLATE_REGULAR_FLOW
     copy_tree(tf_template_dir, tf_folder)
 
