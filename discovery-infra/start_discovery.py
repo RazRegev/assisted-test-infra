@@ -533,6 +533,7 @@ def execute_day1_flow(cluster_name):
             ssh_key=args.ssh_key,
         )
 
+    # in none platform mode secondary network belongs only to secondary masters and secondary workers
     if args.sec_master_count or args.sec_worker_count:
         _enable_multiple_networks_installation(assisted_url, cluster.id)
 
