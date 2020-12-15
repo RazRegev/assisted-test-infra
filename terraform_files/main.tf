@@ -175,7 +175,7 @@ data "libvirt_network_dns_host_template" "secondary_masters_console" {
 }
 
 data "libvirt_network_dns_host_template" "secondary_masters_oauth" {
-  count    = var.sec_master_count
+  count    = var.secondary_master_count
   ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
