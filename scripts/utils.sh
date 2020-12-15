@@ -167,12 +167,5 @@ function get_profile_url() {
     echo https://$(minikube ip --profile $profile):8443
 }
 
-function configure_none_platform_ip_table() {
-    iptables -I FORWARD -i virbr141 -o virbr126 -j ACCEPT
-    iptables -I FORWARD -i virbr126 -o virbr141 -j ACCEPT
-    IP=$(ip route get 1 | sed -n 's/^.*src \([0-9.]*\) .*$/\1/p')
-    iptables -t nat -A POSTROUTING ! -d 192.168.0.0/16 -j SNAT --source 192.168.126.0/24 --to-source ${IP}
-    iptables -t nat -A POSTROUTING ! -d 192.168.0.0/16 -j SNAT --source 192.168.141.0/24 --to-source ${IP}
-}
 
 "$@"
