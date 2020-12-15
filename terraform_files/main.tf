@@ -156,7 +156,7 @@ data "libvirt_network_dns_host_template" "workers_oauth" {
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
-data "libvirt_network_dns_host_template" "secondary_master" {
+data "libvirt_network_dns_host_template" "secondary_masters" {
   count    = var.secondary_master_count
   ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "api.${var.cluster_name}.${var.cluster_domain}"
