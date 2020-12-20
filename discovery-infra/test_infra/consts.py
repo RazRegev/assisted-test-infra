@@ -24,6 +24,7 @@ WAIT_FOR_BM_API = 900
 NAMESPACE_POOL_SIZE = 15
 PODMAN_FLAGS = "--cgroup-manager=cgroupfs --storage-driver=vfs --events-backend=file"
 LOG_FOLDER = "/tmp/assisted_test_infra_logs"
+DEFAULT_ADDITIONAL_NTP_SOURCE = "clock.redhat.com"
 
 
 class NodeRoles:

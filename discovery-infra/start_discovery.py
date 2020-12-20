@@ -336,7 +336,8 @@ def _create_node_details(cluster_name):
         'libvirt_secondary_network_name': consts.TEST_SECONDARY_NETWORK + args.namespace,
         'libvirt_secondary_network_if': f's{args.network_bridge}',
         'secondary_master_count': args.sec_master_count,
-        'secondary_worker_count': args.sec_worker_count
+        'secondary_worker_count': args.sec_worker_count,
+        "additional_ntp_source": consts.DEFAULT_ADDITIONAL_NTP_SOURCE,
     }
 
 
