@@ -310,6 +310,7 @@ def _get_vips_ips(machine_net):
 # Converts params from args to assisted-service cluster params
 def _cluster_create_params():
     ipv4 = args.ipv4 and args.ipv4.lower() in MachineNetwork.YES_VALUES
+    is_none_platform = args.platform.lower() == consts.Platforms.NONE
     params = {
         "openshift_version": utils.get_openshift_version(),
         "base_dns_domain": args.base_dns_domain,
@@ -320,9 +321,9 @@ def _cluster_create_params():
         "http_proxy": args.http_proxy,
         "https_proxy": args.https_proxy,
         "no_proxy": args.no_proxy,
-        "vip_dhcp_allocation": bool(args.vip_dhcp_allocation) and not args.none_platform,
+        "vip_dhcp_allocation": bool(args.vip_dhcp_allocation) and not is_none_platform,
         "additional_ntp_source": consts.DEFAULT_ADDITIONAL_NTP_SOURCE,
-        "user_managed_networking": args.platform == consts.Platforms.NONE
+        "user_managed_networking": is_none_platform
     }
     return params
 
