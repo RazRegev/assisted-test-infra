@@ -325,6 +325,7 @@ def _cluster_create_params():
         "additional_ntp_source": consts.DEFAULT_ADDITIONAL_NTP_SOURCE,
         "user_managed_networking": is_none_platform
     }
+
     return params
 
 
