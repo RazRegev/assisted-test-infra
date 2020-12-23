@@ -7,19 +7,14 @@ import ipaddress
 import json
 import os
 import time
-import uuid
-import requests
-from functools import partial
 from distutils.dir_util import copy_tree
 import distutils.util
-from pathlib import Path
 from netaddr import IPNetwork
 
 from test_infra import assisted_service_api, consts, utils
 import install_cluster
 import oc_utils
 import day2
-import waiting
 from logger import log
 from test_infra.utils import config_etc_hosts
 from test_infra.tools import terraform_utils
