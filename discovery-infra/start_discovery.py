@@ -322,7 +322,7 @@ def _cluster_create_params():
         "no_proxy": args.no_proxy,
         "vip_dhcp_allocation": bool(args.vip_dhcp_allocation) and not args.none_platform,
         "additional_ntp_source": consts.DEFAULT_ADDITIONAL_NTP_SOURCE,
-        "user_managed_networking": args.none_platform
+        "user_managed_networking": args.platform == consts.Platforms.NONE
     }
     return params
 
@@ -397,9 +397,12 @@ def nodes_flow(client, cluster_name, cluster, image_path):
 
     tf_folder = utils.get_tf_folder(cluster_name, args.namespace)
     utils.recreate_folder(tf_folder)
-    log.info('None platform mode: %s', args.none_platform)
 
-    tf_template_dir = consts.TF_TEMPLATE_NONE_PLATFORM_FLOW if args.none_platform else consts.TF_TEMPLATE_REGULAR_FLOW
+    args.platform = args.platform.lower()
+    log.info('Platform mode: %s', args.platform)
+
+    is_none_platform = args.platform == consts.Platforms.NONE
+    tf_template_dir = consts.TF_TEMPLATE_NONE_PLATFORM_FLOW if is_none_platform else consts.TF_TEMPLATE_BARE_METAL_FLOW
     copy_tree(tf_template_dir, tf_folder)
 
     tf = terraform_utils.TerraformUtils(working_dir=tf_folder)
@@ -415,7 +418,7 @@ def nodes_flow(client, cluster_name, cluster, image_path):
         nodes_details=nodes_details,
         tf=tf,
         machine_net=machine_net,
-        is_none_platform=args.none_platform
+        is_none_platform=is_none_platform
     )
 
     if client:
@@ -450,7 +453,7 @@ def nodes_flow(client, cluster_name, cluster, image_path):
             update_hostnames = True
 
         update_hosts(client, cluster.id, libvirt_nodes, update_hostnames)
-        if args.none_platform:
+        if is_none_platform:
             client.client.update_cluster(
                 cluster_id=cluster.id,
                 cluster_update_params={'user_managed_networking': True}
@@ -566,7 +569,7 @@ def main():
         cluster_id = execute_day1_flow(cluster_name)
 
     # None platform currently not supporting day2
-    if args.none_platform:
+    if args.platform.lower() == consts.Platforms.NONE:
         return
 
     if args.day2_cloud_cluster:
@@ -839,10 +842,10 @@ if __name__ == "__main__":
         default=''
     )
     parser.add_argument(
-        "--none-platform",
-        help='Run in none platform mode (user managed network)',
-        action='store_true',
-        default=False
+        '--platform',
+        help='VMs platform mode (\'baremetal\' or \'none\')',
+        type=str,
+        default='baremetal'
     )
 
     oc_utils.extend_parser_with_oc_arguments(parser)
