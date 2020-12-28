@@ -30,9 +30,7 @@ resource "libvirt_network" "net" {
   domain = var.cluster_domain
   addresses = var.machine_cidr_addresses
   autostart = true
-  dhcp {
-    enabled = "false"
-  }
+
   dns {
    dynamic "hosts" {
       for_each = concat(
@@ -60,9 +58,6 @@ resource "libvirt_network" "secondary_net" {
   addresses = var.provisioning_cidr_addresses
   mtu = var.libvirt_network_mtu
   autostart = true
-    dhcp {
-    enabled = "false"
-  }
   dns {
     dynamic "hosts" {
       for_each = concat(
@@ -127,7 +122,7 @@ data "libvirt_network_dns_host_template" "masters_sec_console" {
 
 data "libvirt_network_dns_host_template" "masters_sec_oauth" {
   count    = 1
-  ip       = var.libvirt_secondary_master_ips[0][0]
+  ip       = var.libvirt_secondary_master_ips[count.index]
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
@@ -198,7 +193,7 @@ resource "libvirt_domain" "master-sec" {
   network_interface {
     network_name = libvirt_network.secondary_net.name
     hostname   = "${var.cluster_name}-master-${count.index}-secondary.${var.cluster_domain}"
-    addresses  = [var.libvirt_secondary_master_ips[0][0]]
+    addresses  = [var.libvirt_secondary_master_ips[count.index]]
   }
 
   boot_device{
