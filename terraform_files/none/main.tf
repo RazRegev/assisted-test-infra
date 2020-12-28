@@ -25,7 +25,7 @@ resource "libvirt_volume" "worker" {
 resource "libvirt_network" "net" {
   name = var.libvirt_network_name
   mode   = "route"
-  bridge = "virbr126"
+  bridge = "br-public6"
   mtu = var.libvirt_network_mtu
   domain = var.cluster_domain
   addresses = var.machine_cidr_addresses
@@ -56,7 +56,7 @@ resource "libvirt_network" "net" {
 resource "libvirt_network" "secondary_net" {
   name = var.libvirt_secondary_network_name
   mode   = "route"
-  bridge = "virbr141"
+  bridge = "br-public6"
   addresses = var.provisioning_cidr_addresses
   mtu = var.libvirt_network_mtu
   autostart = true
