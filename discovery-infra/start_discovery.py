@@ -68,7 +68,7 @@ def fill_tfvars(
     worker_count = nodes_details['worker_count']
     tfvars['image_path'] = image_path
     tfvars['master_count'] = master_count
-    if machine_net.has_ip_v4:
+    if machine_net.has_ip_v4 or is_none_platform_mode():
         tfvars['libvirt_master_ips'] = utils.create_ip_address_nested_list(
             master_count, starting_ip_addr=master_starting_ip
         )
@@ -89,7 +89,6 @@ def fill_tfvars(
     if machine_net.has_ip_v6:
         machine_cidr_addresses += [machine_net.cidr_v6]
         provisioning_cidr_addresses += [machine_net.provisioning_cidr_v6]
-
 
     tfvars['machine_cidr_addresses'] = machine_cidr_addresses
     tfvars['provisioning_cidr_addresses'] = provisioning_cidr_addresses
@@ -134,7 +133,7 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
         )
 
     worker_count = nodes_details['worker_count']
-    if machine_net.has_ip_v4:
+    if machine_net.has_ip_v4 or is_none_platform_mode():
         return {
             'libvirt_secondary_worker_ips': utils.create_ip_address_nested_list(
                 worker_count,
