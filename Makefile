@@ -48,8 +48,8 @@ HTTP_PROXY_URL := $(or $(HTTP_PROXY_URL), "")
 HTTPS_PROXY_URL := $(or $(HTTPS_PROXY_URL), "")
 NO_PROXY_VALUES := $(or $(NO_PROXY_VALUES), "")
 VIP_DHCP_ALLOCATION := $(or $(VIP_DHCP_ALLOCATION),yes)
-IPv4 := $(or $(IPv4),yes)
-IPv6 := $(or $(IPv6), "")
+IPv4 := $(or $(IPv4),"")
+IPv6 := $(or $(IPv6), "yes")
 
 #day2 params
 API_VIP_IP := $(or $(API_VIP_IP),"")
