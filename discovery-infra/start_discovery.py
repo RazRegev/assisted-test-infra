@@ -134,7 +134,7 @@ def _secondary_tfvars(master_count, nodes_details, machine_net):
         )
 
     worker_count = nodes_details['worker_count']
-    if machine_net.has_ip_v4 or is_none_platform_mode():
+    if machine_net.has_ip_v4:
         return {
             'libvirt_secondary_worker_ips': utils.create_ip_address_nested_list(
                 worker_count,
