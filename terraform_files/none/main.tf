@@ -30,9 +30,7 @@ resource "libvirt_network" "net" {
   domain = var.cluster_domain
   addresses = var.machine_cidr_addresses
   autostart = true
-  dhcp {
-    enabled = "false"
-  }
+
   dns {
    dynamic "hosts" {
       for_each = concat(
@@ -60,9 +58,7 @@ resource "libvirt_network" "secondary_net" {
   addresses = var.provisioning_cidr_addresses
   mtu = var.libvirt_network_mtu
   autostart = true
-  dhcp {
-    enabled = "false"
-  }
+
   dns {
     dynamic "hosts" {
       for_each = concat(
