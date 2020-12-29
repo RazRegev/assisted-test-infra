@@ -164,7 +164,7 @@ run_terraform: copy_terraform_files
 	skipper make $(SKIPPER_PARAMS) _run_terraform
 
 _run_terraform:
-		cd build/terraform/$(CLUSTER_NAME)__$(NAMESPACE) && \
+		cd build/terraform/test-infra-cluster-assisted-installer__assisted-installer/ && \
 		terraform init -plugin-dir=/root/.terraform.d/plugins/ && \
 		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform.tfvars.json
 
