@@ -188,15 +188,7 @@ def create_nodes_and_wait_till_registered(
         machine_net
 ):
     nodes_count = master_count + nodes_details["worker_count"]
-    create_nodes(
-        cluster_name=cluster_name,
-        image_path=image_path,
-        storage_path=storage_path,
-        master_count=master_count,
-        nodes_details=nodes_details,
-        tf=tf,
-        machine_net=machine_net
-    )
+
     tf.remove_macs(True)
     # TODO: Check for only new nodes
     if not inventory_client:
