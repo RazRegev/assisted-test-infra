@@ -169,7 +169,7 @@ _run_terraform:
 		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform.tfvars.json
 
 _apply_terraform:
-		cd build/terraform/$(CLUSTER_NAME)__$(NAMESPACE) && \
+		cd build/terraform/test-infra-cluster-assisted-installer__assisted-installer/  && \
 		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate
 
 destroy_terraform:
