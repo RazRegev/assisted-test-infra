@@ -157,6 +157,8 @@ resource "libvirt_domain" "master" {
     network_name = libvirt_network.net.name
     hostname   = "${var.cluster_name}-master-${count.index}.${var.cluster_domain}"
     addresses  = var.libvirt_master_ips[count.index]
+    mac        = ""
+    wait_for_lease = false
   }
 
   boot_device{
@@ -195,6 +197,8 @@ resource "libvirt_domain" "master-sec" {
     network_name = libvirt_network.secondary_net.name
     hostname   = "${var.cluster_name}-master-${count.index}-secondary.${var.cluster_domain}"
     addresses  = [var.libvirt_secondary_master_ips[0][0]]
+    mac        = ""
+    wait_for_lease = false
   }
 
   boot_device{
