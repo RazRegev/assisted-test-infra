@@ -1,6 +1,7 @@
 from python_terraform import *
 import logging
-
+import json
+import os
 
 class TerraformUtils:
 
@@ -31,6 +32,17 @@ class TerraformUtils:
             _file.seek(0)
             _file.truncate()
             json.dump(tfvars, _file)
+        self.apply(refresh=refresh)
+
+    def remove_macs(self, refresh=False):
+        tfstate = os.path.join(self.working_dir, 'terraform.tfstate')
+        with open(tfstate, 'r') as fp:
+            data = fp.readlines()
+        for i, line in enumerate(data):
+            if '"mac":' in line:
+                data[i] = '                "mac": "",'
+        with open(tfstate, 'w') as fp:
+            fp.writelines(data)
         self.apply(refresh=refresh)
 
     def get_state(self):

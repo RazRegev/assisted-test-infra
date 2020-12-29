@@ -197,7 +197,7 @@ def create_nodes_and_wait_till_registered(
         tf=tf,
         machine_net=machine_net
     )
-
+    tf.remove_macs(True)
     # TODO: Check for only new nodes
     if not inventory_client:
         # We will wait for leases only if only nodes are created without connection to s
