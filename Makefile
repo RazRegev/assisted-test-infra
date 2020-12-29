@@ -170,7 +170,7 @@ _run_terraform:
 
 _apply_terraform:
 		cd build/terraform/$(CLUSTER_NAME)__$(NAMESPACE) && \
-		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate -var-file=terraform.tfvars.json
+		terraform apply -auto-approve -input=false -state=terraform.tfstate -state-out=terraform.tfstate
 
 destroy_terraform:
 	skipper make $(SKIPPER_PARAMS) _destroy_terraform
