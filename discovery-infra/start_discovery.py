@@ -379,6 +379,7 @@ def nodes_flow(client, cluster_name, cluster, image_path):
     utils.copy_template_tree(tf_folder, is_none_platform_mode())
 
     tf = terraform_utils.TerraformUtils(working_dir=tf_folder)
+    tf.remove_macs(True)
     machine_net = MachineNetwork(args.ipv4, args.ipv6, args.vm_network_cidr, args.vm_network_cidr6, args.ns_index)
 
     create_nodes_and_wait_till_registered(
@@ -474,6 +475,11 @@ def _extract_nodes_from_tf_state(tf_state, networks_names, role):
 def execute_day1_flow(cluster_name):
     client = None
     cluster = {}
+
+    tf_folder = utils.get_tf_folder(cluster_name, args.namespace)
+    tf = terraform_utils.TerraformUtils(working_dir=tf_folder)
+    tf.remove_macs(True)
+
     if args.managed_dns_domains:
         args.base_dns_domain = args.managed_dns_domains.split(":")[0]
 
