@@ -68,7 +68,7 @@ def fill_tfvars(
     worker_count = nodes_details['worker_count']
     tfvars['image_path'] = image_path
     tfvars['master_count'] = master_count
-    if machine_net.has_ip_v4:
+    if machine_net.has_ip_v4 or is_none_platform_mode():
         tfvars['libvirt_master_ips'] = utils.create_ip_address_nested_list(
             master_count, starting_ip_addr=master_starting_ip
         )
