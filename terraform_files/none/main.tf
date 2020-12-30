@@ -79,50 +79,50 @@ resource "libvirt_network" "secondary_net" {
 }
 
 data "libvirt_network_dns_host_template" "masters" {
-  count    = var.master_count
+  count    = var.create_dns ? var.master_count : 0
   ip       = var.libvirt_master_ips[count.index][0]
   hostname = "api.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_int" {
-  count    = var.master_count
+  count    = var.create_dns ? var.master_count : 0
   ip       = var.libvirt_master_ips[count.index][0]
   hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_console" {
-  count    = var.master_count
+  count    = var.create_dns ? var.master_count : 0
   ip       = var.libvirt_master_ips[count.index][0]
   hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_oauth" {
-  count    = var.master_count
+  count    = var.create_dns ? var.master_count : 0
   ip       = var.libvirt_master_ips[count.index][0]
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_sec" {
-  count    = 1
-  ip       = var.libvirt_secondary_master_ips[0][0]
+  count    = var.create_dns ? 1 : 0
+  ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "api.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_sec_int" {
-  count    = 1
-  ip       = var.libvirt_secondary_master_ips[0][0]
+  count    = var.create_dns ? 1 : 0
+  ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "api-int.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_sec_console" {
-  count    = 1
-  ip       = var.libvirt_secondary_master_ips[0][0]
+  count    = var.create_dns ? 1 : 0
+  ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "console-openshift-console.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 
 data "libvirt_network_dns_host_template" "masters_sec_oauth" {
-  count    = 1
-  ip       = var.libvirt_secondary_master_ips[0][0]
+  count    = var.create_dns ? 1 : 0
+  ip       = var.libvirt_secondary_master_ips[count.index][0]
   hostname = "oauth-openshift.apps.${var.cluster_name}.${var.cluster_domain}"
 }
 

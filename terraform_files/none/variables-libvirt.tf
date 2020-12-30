@@ -144,3 +144,9 @@ variable "running" {
 variable "cluster_inventory_id" {
   type      = string
 }
+
+variable "create_dns" {
+  type    = bool
+  default = false
+}
+
