@@ -193,7 +193,7 @@ resource "libvirt_domain" "master-sec" {
   network_interface {
     network_name = libvirt_network.secondary_net.name
     hostname   = "${var.cluster_name}-master-${count.index}-secondary.${var.cluster_domain}"
-    addresses  = [var.libvirt_secondary_master_ips]
+    addresses  = var.libvirt_master_ips[count.index]
   }
 
   boot_device{
