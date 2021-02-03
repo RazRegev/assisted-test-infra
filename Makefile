@@ -71,7 +71,7 @@ IMAGE_TAG := latest
 DEPLOY_TAG := $(or $(DEPLOY_TAG), "")
 DEPLOY_MANIFEST_PATH := $(or $(DEPLOY_MANIFEST_PATH), "")
 DEPLOY_MANIFEST_TAG := $(or $(DEPLOY_MANIFEST_TAG), "")
-SERVICE_REPLICAS_COUNT := 3
+SERVICE_REPLICAS_COUNT := 1
 
 IMAGE_NAME=test-infra
 IMAGE_REG_NAME=quay.io/itsoiref/$(IMAGE_NAME)
@@ -122,7 +122,7 @@ destroy: destroy_nodes delete_minikube_profile kill_port_forwardings delete_podm
 create_full_environment:
 	./create_full_environment.sh
 
-create_environment: image_build bring_assisted_service start_minikube
+create_environment: image_build start_minikube
 
 image_build:
 	sed 's/^FROM .*assisted-service.*:latest/FROM $(subst /,\/,${SERVICE})/' Dockerfile.test-infra | \
@@ -322,7 +322,7 @@ redeploy_nodes_with_install: destroy_nodes deploy_nodes_with_install
 # Inventory #
 #############
 
-deploy_assisted_service: start_minikube bring_assisted_service
+deploy_assisted_service: start_minikube
 	mkdir -p assisted-service/build
 	DEPLOY_TAG=$(DEPLOY_TAG) NAMESPACE_INDEX=$(shell bash scripts/utils.sh get_namespace_index $(NAMESPACE) $(OC_FLAG)) DEPLOY_MANIFEST_PATH=$(DEPLOY_MANIFEST_PATH) DEPLOY_MANIFEST_TAG=$(DEPLOY_MANIFEST_TAG) scripts/deploy_assisted_service.sh
 

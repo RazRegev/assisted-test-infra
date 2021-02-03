@@ -50,7 +50,6 @@ elif [ "${DEPLOY_TARGET}" == "ocp" ]; then
 else
     print_log "Updating assisted_service params"
     skipper run discovery-infra/update_assisted_service_cm.py ENABLE_AUTH=${ENABLE_AUTH}
-    cd assisted-service/ && skipper run "make deploy-all" ${SKIPPER_PARAMS} DEPLOY_TAG=${DEPLOY_TAG} DEPLOY_MANIFEST_PATH=${DEPLOY_MANIFEST_PATH} DEPLOY_MANIFEST_TAG=${DEPLOY_MANIFEST_TAG} NAMESPACE=${NAMESPACE} ENABLE_AUTH=${ENABLE_AUTH} PROFILE=${PROFILE}
 
     print_log "Wait till ${SERVICE_NAME} api is ready"
     wait_for_url_and_run "$(minikube service ${SERVICE_NAME} --url -p $PROFILE -n ${NAMESPACE})" "echo \"waiting for ${SERVICE_NAME}\""
