@@ -17,7 +17,7 @@ from test_infra.tools.assets import NetworkAssets
 from test_infra.controllers.proxy_controller.proxy_controller import ProxyController
 from assisted_service_client.rest import ApiException
 from test_infra.helper_classes.cluster import Cluster
-from test_infra.helper_classes.kube_helpers import ClusterCRD, PullSecretCRD
+from test_infra.helper_classes.kube_helpers import ClusterDeploymentCRD, PullSecretCRD
 from test_infra.helper_classes.nodes import Nodes
 from tests.conftest import env_variables, qe_env
 from download_logs import download_logs
@@ -89,8 +89,8 @@ class BaseTest:
                 cluster.delete()
 
     @pytest.fixture()
-    def cluster_crd(self):
-        c = ClusterCRD()
+    def cluster_deployment_crd(self):
+        c = ClusterDeploymentCRD()
         yield c.create
         c.delete()
         if isinstance(c.pull_secret, PullSecretCRD):
