@@ -48,6 +48,13 @@ class ClusterDeploymentCRD(object):
     def name(self) -> str:
         return self.__name
 
+    @property
+    def spec(self) -> dict:
+        if self.__name is None:
+            return {}
+
+        return self.get()['spec']
+
     def status(
         self,
         timeout: Optional[Union[int, float]] = WAIT_FOR_CRD_STATUS_TIMEOUT
@@ -68,7 +75,9 @@ class ClusterDeploymentCRD(object):
 
     def create(self, **kwargs) -> 'ClusterDeploymentCRD':
         self.__name = kwargs.pop('name', get_random_name(length=10))
-        self.openshift_version = kwargs.pop('openshiftVersion', DEFAULT_OPENSHIFT_VERSION)
+        self.openshift_version = kwargs.pop(
+            'openshiftVersion', DEFAULT_OPENSHIFT_VERSION
+        )
         self._set_provision_requirements(
             control_plane_agents=kwargs.pop('controlPlaneAgents', 3),
             agent_selector=kwargs.pop('agentSelector', None)
