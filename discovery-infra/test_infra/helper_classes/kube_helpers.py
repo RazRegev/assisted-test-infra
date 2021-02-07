@@ -48,7 +48,6 @@ class ClusterDeploymentCRD(object):
     def name(self) -> str:
         return self.__name
 
-    @property
     def spec(self) -> dict:
         if self.__name is None:
             return {}
