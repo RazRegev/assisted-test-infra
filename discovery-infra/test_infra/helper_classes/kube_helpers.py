@@ -9,7 +9,6 @@ from kubernetes.config.kube_config import Configuration
 from test_infra.consts import *
 from test_infra.utils import get_random_name
 
-
 WAIT_FOR_CRD_STATUS_TIMEOUT = 5
 
 _GROUP = 'adi.io.my.domain'
@@ -126,6 +125,9 @@ class ClusterDeploymentCRD(object):
         )
 
     def delete(self) -> None:
+        if self.__name is None:
+            return
+
         self._crds_api.delete_namespaced_custom_object(
             group=_GROUP,
             version=_VERSION,
@@ -180,6 +182,9 @@ class PullSecretCRD(object):
         self.all_secrets[self.name] = self
 
     def delete(self) -> None:
+        if self.name not in self.all_secrets:
+            return
+
         self._v1_api.delete_namespaced_secret(
             namespace=_NAMESPACE,
             name=self.name
