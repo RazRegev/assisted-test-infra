@@ -20,6 +20,7 @@ import os
 import abc
 import contextlib
 import json
+import yaml
 
 import waiting
 
@@ -271,8 +272,27 @@ class ClusterDeployment(BaseCustomResource):
         self._assigned_secret = None
 
     @property
-    def secret(self):
+    def secret(self) -> Secret:
         return self._assigned_secret
+
+    def create_from_yaml(self, yaml_data: dict) -> None:
+        self.crd_api.create_namespaced_custom_object(
+            group=self._hive_api_group,
+            version='v1',
+            plural=self._plural,
+            body=yaml_data,
+            namespace=self.ref.namespace
+        )
+        secret_ref = yaml_data['spec']['pullSecretRef']
+        self._assigned_secret = Secret(
+            kube_api_client=self.crd_api.api_client,
+            name=secret_ref['name'],
+            namespace=secret_ref['namespace']
+        )
+
+        logger.info(
+            'created cluster deployment %s: %s', self.ref, pformat(yaml_data)
+        )
 
     def create(
             self,
@@ -322,7 +342,9 @@ class ClusterDeployment(BaseCustomResource):
             spec['platform'] = platform.as_dict()
 
         if install_strategy:
-            spec['provisioning']['installStrategy'] = install_strategy.as_dict()
+            spec['provisioning'] = {
+                'installStrategy': install_strategy.as_dict()
+            }
 
         if secret:
             spec['pullSecretRef'] = secret.ref.as_dict()
@@ -455,8 +477,6 @@ def deploy_default_cluster_deployment(
         secret: Optional[Secret] = None,
         **kwargs
 ) -> ClusterDeployment:
-    platform = Platform(**platform_params or {})
-    install_strategy = InstallStrategy(**install_strategy_params or {})
 
     if secret is None:
         secret = deploy_default_secret(
@@ -467,13 +487,17 @@ def deploy_default_cluster_deployment(
 
     cluster_deployment = ClusterDeployment(kube_api_client, name)
     try:
-        cluster_deployment.create(
-            platform=platform,
-            install_strategy=install_strategy,
-            secret=secret,
-            base_domain=base_domain,
-            **kwargs
-        )
+        if 'filepath' in kwargs:
+            _create_from_yaml_file(cluster_deployment, kwargs['filepath'])
+        else:
+            _create_from_attrs(
+                cluster_deployment=cluster_deployment,
+                base_domain=base_domain,
+                secret=secret,
+                platform_params=platform_params,
+                install_strategy_params=install_strategy_params,
+                **kwargs
+            )
     except ApiException as e:
         if not (e.reason == 'Conflict' and ignore_conflict):
             raise
@@ -483,6 +507,34 @@ def deploy_default_cluster_deployment(
     cluster_deployment.status()
 
     return cluster_deployment
+
+
+def _create_from_yaml_file(
+        cluster_deployment: ClusterDeployment,
+        filepath: str
+) -> None:
+    with open(filepath) as fp:
+        yaml_data = yaml.safe_load(fp)
+    cluster_deployment.create_from_yaml(yaml_data)
+
+
+def _create_from_attrs(
+        cluster_deployment: ClusterDeployment,
+        base_domain: str,
+        secret: Secret,
+        platform_params: Optional[dict] = None,
+        install_strategy_params: Optional[dict] = None,
+        **kwargs
+) -> None:
+    platform = Platform(**platform_params or {})
+    install_strategy = InstallStrategy(**install_strategy_params or {})
+    cluster_deployment.create(
+        platform=platform,
+        install_strategy=install_strategy,
+        secret=secret,
+        base_domain=base_domain,
+        **kwargs
+    )
 
 
 def delete_cluster_deployment(
