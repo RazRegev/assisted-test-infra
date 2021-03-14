@@ -263,6 +263,7 @@ class ClusterDeployment(BaseCustomResource):
     """
 
     _hive_api_group = 'hive.openshift.io'
+    _hive_api_version = 'v1'
     _plural = 'clusterdeployments'
 
     def __init__(
@@ -282,7 +283,7 @@ class ClusterDeployment(BaseCustomResource):
     def create_from_yaml(self, yaml_data: dict) -> None:
         self.crd_api.create_namespaced_custom_object(
             group=self._hive_api_group,
-            version='v1',
+            version=self._hive_api_version,
             plural=self._plural,
             body=yaml_data,
             namespace=self.ref.namespace
@@ -306,7 +307,7 @@ class ClusterDeployment(BaseCustomResource):
             **kwargs
     ) -> None:
         body = {
-            'apiVersion': f'{self._hive_api_group}/v1',
+            'apiVersion': f'{self._hive_api_group}/{self._hive_api_version}',
             'kind': 'ClusterDeployment',
             'metadata': self.ref.as_dict(),
             'spec': {
@@ -320,7 +321,7 @@ class ClusterDeployment(BaseCustomResource):
         body['spec'].update(kwargs)
         self.crd_api.create_namespaced_custom_object(
             group=self._hive_api_group,
-            version='v1',
+            version=self._hive_api_version,
             plural=self._plural,
             body=body,
             namespace=self.ref.namespace
@@ -354,12 +355,15 @@ class ClusterDeployment(BaseCustomResource):
 
         self.crd_api.patch_namespaced_custom_object(
             group=self._hive_api_group,
-            version='v1',
+            version=self._hive_api_version,
             plural=self._plural,
             name=self.ref.name,
             namespace=self.ref.namespace,
             body=body
         )
+
+        if secret:
+            self._assigned_secret = secret
 
         logger.info(
             'patching cluster deployment %s: %s', self.ref, pformat(body)
@@ -368,7 +372,7 @@ class ClusterDeployment(BaseCustomResource):
     def get(self) -> dict:
         return self.crd_api.get_namespaced_custom_object(
             group=self._hive_api_group,
-            version='v1',
+            version=self._hive_api_version,
             plural=self._plural,
             name=self.ref.name,
             namespace=self.ref.namespace
@@ -377,7 +381,7 @@ class ClusterDeployment(BaseCustomResource):
     def delete(self) -> None:
         self.crd_api.delete_namespaced_custom_object(
             group=self._hive_api_group,
-            version='v1',
+            version=self._hive_api_version,
             plural=self._plural,
             name=self.ref.name,
             namespace=self.ref.namespace
@@ -444,6 +448,163 @@ class ClusterDeployment(BaseCustomResource):
         )
 
 
+class InstallEnv(BaseCustomResource):
+
+    _api_group = 'adi.io.my.domain'
+    _api_version = 'v1alpha1'
+    _plural = 'installenvs'
+
+    def __init__(
+            self,
+            kube_api_client: ApiClient,
+            name: str,
+            namespace: str = env_variables['namespace']
+    ):
+        BaseCustomResource.__init__(self, name, namespace)
+        self.crd_api = CustomObjectsApi(kube_api_client)
+        self._assigned_cluster_deployment = None
+        self._assigned_secret = None
+
+    def create_from_yaml(self, yaml_data: dict) -> None:
+        self.crd_api.create_namespaced_custom_object(
+            group=self._api_group,
+            version=self._api_version,
+            plural=self._plural,
+            body=yaml_data,
+            namespace=self.ref.namespace
+        )
+
+        cluster_ref = yaml_data['spec']['clusterRef']
+        self._assigned_cluster_deployment = ClusterDeployment(
+            kube_api_client=self.crd_api.api_client,
+            name=cluster_ref['name'],
+            namespace=cluster_ref['namespace']
+        )
+
+        secret_ref = yaml_data['spec']['pullSecretRef']
+        self._assigned_secret = Secret(
+            kube_api_client=self.crd_api.api_client,
+            name=secret_ref['name'],
+            namespace=secret_ref['namespace']
+        )
+
+        logger.info(
+            'created installEnv %s: %s', self.ref, pformat(yaml_data)
+        )
+
+    def create(
+            self,
+            cluster_deployment: ClusterDeployment,
+            secret: Secret,
+            label_selector: Optional[Dict[str, str]] = None,
+            **kwargs
+    ) -> None:
+        body = {
+            'apiVersion': f'{self._api_group}/{self._api_version}',
+            'kind': 'InstallEnv',
+            'metadata': self.ref.as_dict(),
+            'spec': {
+                'clusterRef': cluster_deployment.ref.as_dict(),
+                'pullSecretRef': secret.ref.as_dict(),
+                'agentLabelSelector': {'matchLabels': label_selector or {}}
+            }
+        }
+        body['spec'].update(kwargs)
+        self.crd_api.create_namespaced_custom_object(
+            group=self._api_group,
+            version=self._api_version,
+            plural=self._plural,
+            body=body,
+            namespace=self.ref.namespace
+        )
+        self._assigned_cluster_deployment = cluster_deployment
+        self._assigned_secret = secret
+
+        logger.info(
+            'created installEnv %s: %s', self.ref, pformat(body)
+        )
+
+    def patch(
+            self,
+            cluster_deployment: Optional[ClusterDeployment],
+            secret: Optional[Secret],
+            label_selector: Optional[Dict[str, str]] = None,
+            **kwargs
+    ) -> None:
+        body = {'spec': kwargs}
+
+        spec = body['spec']
+        if cluster_deployment:
+            spec['clusterRef'] = cluster_deployment.ref.as_dict()
+
+        if secret:
+            spec['pullSecretRef'] = secret.ref.as_dict()
+
+        if label_selector:
+            spec['agentLabelSelector'] = {'matchLabels': label_selector}
+
+        self.crd_api.patch_namespaced_custom_object(
+            group=self._api_group,
+            version=self._api_version,
+            plural=self._plural,
+            name=self.ref.name,
+            namespace=self.ref.namespace,
+            body=body
+        )
+
+        if cluster_deployment:
+            self._assigned_cluster_deployment = cluster_deployment
+
+        if secret:
+            self._assigned_secret = secret
+
+        logger.info(
+            'patching installEnv %s: %s', self.ref, pformat(body)
+        )
+
+    def get(self) -> dict:
+        return self.crd_api.get_namespaced_custom_object(
+            group=self._api_group,
+            version=self._api_version,
+            plural=self._plural,
+            name=self.ref.name,
+            namespace=self.ref.namespace
+        )
+
+    def delete(self) -> None:
+        self.crd_api.delete_namespaced_custom_object(
+            group=self._api_group,
+            version=self._api_version,
+            plural=self._plural,
+            name=self.ref.name,
+            namespace=self.ref.namespace
+        )
+
+        logger.info('deleted installEnv %s', self.ref)
+
+    def status(
+            self,
+            timeout: Union[int, float] = DEFAULT_WAIT_FOR_CRD_STATUS_TIMEOUT
+    ) -> dict:
+        """
+        Status is a section in the CRD that is created after registration to
+        assisted service and it defines the observed state of ClusterDeployment.
+        Since the status key is created only after resource is processed by the
+        controller in the service, it might take a few seconds before appears.
+        """
+
+        def _attempt_to_get_status() -> dict:
+            return self.get()['status']
+
+        return waiting.wait(
+            _attempt_to_get_status,
+            sleep_seconds=0.5,
+            timeout_seconds=timeout,
+            waiting_for=f'installEnv {self.ref} status',
+            expected_exceptions=KeyError
+        )
+
+
 def deploy_default_secret(
         kube_api_client: ApiClient,
         name: str,
@@ -488,7 +649,8 @@ def deploy_default_cluster_deployment(
                 kube_api_client=kube_api_client,
                 ignore_conflict=ignore_conflict,
                 cluster_deployment=cluster_deployment,
-                filepath=kwargs['filepath'])
+                filepath=kwargs['filepath']
+            )
         else:
             _create_from_attrs(
                 kube_api_client=kube_api_client,
