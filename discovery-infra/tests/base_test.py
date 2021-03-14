@@ -16,7 +16,8 @@ from paramiko import SSHException
 from test_infra import consts
 from test_infra.controllers.proxy_controller.proxy_controller import ProxyController
 from test_infra.helper_classes.cluster import Cluster
-from test_infra.helper_classes.kube_helpers import create_kube_api_client, cluster_deployment_context
+from test_infra.helper_classes.kube_helpers import \
+    create_kube_api_client, cluster_deployment_context, install_env_context
 from test_infra.helper_classes.nodes import Nodes
 from test_infra.tools.assets import NetworkAssets
 from tests.conftest import env_variables, qe_env
@@ -295,3 +296,7 @@ class BaseTest:
     @pytest.fixture()
     def cluster_deployment_context(self):
         yield cluster_deployment_context
+
+    @pytest.fixture()
+    def install_env_context(self):
+        yield install_env_context

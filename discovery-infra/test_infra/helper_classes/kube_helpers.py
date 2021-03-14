@@ -462,8 +462,6 @@ class InstallEnv(BaseCustomResource):
     ):
         BaseCustomResource.__init__(self, name, namespace)
         self.crd_api = CustomObjectsApi(kube_api_client)
-        self._assigned_cluster_deployment = None
-        self._assigned_secret = None
 
     def create_from_yaml(self, yaml_data: dict) -> None:
         self.crd_api.create_namespaced_custom_object(
@@ -472,20 +470,6 @@ class InstallEnv(BaseCustomResource):
             plural=self._plural,
             body=yaml_data,
             namespace=self.ref.namespace
-        )
-
-        cluster_ref = yaml_data['spec']['clusterRef']
-        self._assigned_cluster_deployment = ClusterDeployment(
-            kube_api_client=self.crd_api.api_client,
-            name=cluster_ref['name'],
-            namespace=cluster_ref['namespace']
-        )
-
-        secret_ref = yaml_data['spec']['pullSecretRef']
-        self._assigned_secret = Secret(
-            kube_api_client=self.crd_api.api_client,
-            name=secret_ref['name'],
-            namespace=secret_ref['namespace']
         )
 
         logger.info(
@@ -517,8 +501,6 @@ class InstallEnv(BaseCustomResource):
             body=body,
             namespace=self.ref.namespace
         )
-        self._assigned_cluster_deployment = cluster_deployment
-        self._assigned_secret = secret
 
         logger.info(
             'created installEnv %s: %s', self.ref, pformat(body)
@@ -552,12 +534,6 @@ class InstallEnv(BaseCustomResource):
             body=body
         )
 
-        if cluster_deployment:
-            self._assigned_cluster_deployment = cluster_deployment
-
-        if secret:
-            self._assigned_secret = secret
-
         logger.info(
             'patching installEnv %s: %s', self.ref, pformat(body)
         )
@@ -588,7 +564,7 @@ class InstallEnv(BaseCustomResource):
     ) -> dict:
         """
         Status is a section in the CRD that is created after registration to
-        assisted service and it defines the observed state of ClusterDeployment.
+        assisted service and it defines the observed state of InstallEnv.
         Since the status key is created only after resource is processed by the
         controller in the service, it might take a few seconds before appears.
         """
@@ -645,14 +621,14 @@ def deploy_default_cluster_deployment(
     cluster_deployment = ClusterDeployment(kube_api_client, name)
     try:
         if 'filepath' in kwargs:
-            _create_from_yaml_file(
+            _create_cluster_deployment_from_yaml_file(
                 kube_api_client=kube_api_client,
                 ignore_conflict=ignore_conflict,
                 cluster_deployment=cluster_deployment,
                 filepath=kwargs['filepath']
             )
         else:
-            _create_from_attrs(
+            _create_cluster_deployment_from_attrs(
                 kube_api_client=kube_api_client,
                 name=name,
                 ignore_conflict=ignore_conflict,
@@ -674,7 +650,7 @@ def deploy_default_cluster_deployment(
     return cluster_deployment
 
 
-def _create_from_yaml_file(
+def _create_cluster_deployment_from_yaml_file(
         kube_api_client: ApiClient,
         ignore_conflict: bool,
         cluster_deployment: ClusterDeployment,
@@ -691,7 +667,7 @@ def _create_from_yaml_file(
     cluster_deployment.create_from_yaml(yaml_data)
 
 
-def _create_from_attrs(
+def _create_cluster_deployment_from_attrs(
         kube_api_client: ApiClient,
         name: str,
         ignore_conflict: bool,
@@ -739,6 +715,17 @@ def delete_cluster_deployment(
     _try_to_delete_resource(cluster_deployment)
 
 
+def delete_install_env(
+        install_env: InstallEnv,
+        ignore_not_found: bool = True
+) -> None:
+    try:
+        install_env.delete()
+    except ApiException as e:
+        if not (e.reason == 'Not Found' and ignore_not_found):
+            raise
+
+
 @contextlib.contextmanager
 def cluster_deployment_context(
         kube_api_client: ApiClient,
@@ -764,3 +751,122 @@ def cluster_deployment_context(
         yield cluster_deployment
     finally:
         delete_cluster_deployment(cluster_deployment)
+
+
+def deploy_default_install_env(
+        kube_api_client: ApiClient,
+        name: str,
+        ignore_conflict: bool = True,
+        cluster_deployment: Optional[ClusterDeployment] = None,
+        secret: Optional[Secret] = None,
+        label_selector: Optional[Dict[str, str]] = None,
+        **kwargs
+) -> InstallEnv:
+
+    install_env = InstallEnv(kube_api_client, name)
+    try:
+        if 'filepath' in kwargs:
+            _create_install_env_from_yaml_file(
+                kube_api_client=kube_api_client,
+                ignore_conflict=ignore_conflict,
+                install_env=install_env,
+                filepath=kwargs['filepath']
+            )
+        else:
+            _create_install_env_from_attrs(
+                kube_api_client=kube_api_client,
+                name=name,
+                ignore_conflict=ignore_conflict,
+                install_env=install_env,
+                cluster_deployment=cluster_deployment,
+                secret=secret,
+                label_selector=label_selector,
+                **kwargs
+            )
+    except ApiException as e:
+        if not (e.reason == 'Conflict' and ignore_conflict):
+            raise
+
+    # wait until install-env will have status (i.e until resource will be
+    # processed in assisted-service).
+    install_env.status()
+
+    return install_env
+
+
+def _create_install_env_from_yaml_file(
+        kube_api_client: ApiClient,
+        ignore_conflict: bool,
+        install_env: InstallEnv,
+        filepath: str
+) -> None:
+    with open(filepath) as fp:
+        yaml_data = yaml.safe_load(fp)
+
+    secret = deploy_default_secret(
+        kube_api_client=kube_api_client,
+        name=yaml_data['spec']['pullSecretRef']['name'],
+        ignore_conflict=ignore_conflict
+    )
+    deploy_default_cluster_deployment(
+        kube_api_client=kube_api_client,
+        name=yaml_data['spec']['clusterRef']['name'],
+        secret=secret
+    )
+    install_env.create_from_yaml(yaml_data)
+
+
+def _create_install_env_from_attrs(
+        kube_api_client: ApiClient,
+        name: str,
+        ignore_conflict: bool,
+        install_env: InstallEnv,
+        cluster_deployment: ClusterDeployment,
+        secret: Secret,
+        label_selector: Optional[Dict[str, str]] = None,
+        **kwargs
+) -> None:
+    if not secret:
+        secret = deploy_default_secret(kube_api_client, name, ignore_conflict)
+    if not cluster_deployment:
+        cluster_deployment = deploy_default_cluster_deployment(
+            kube_api_client=kube_api_client,
+            name=name,
+            ignore_conflict=ignore_conflict,
+            secret=secret
+        )
+
+    install_env.create(cluster_deployment, secret, label_selector, **kwargs)
+
+
+@contextlib.contextmanager
+def install_env_context(
+        kube_api_client: ApiClient,
+        cluster_deployment: ClusterDeployment,
+        secret: Secret,
+        name: Optional[str] = None,
+        label_selector: Optional[Dict[str, str]] = None,
+        **kwargs
+) -> ContextManager[ClusterDeployment]:
+    """
+    Used by tests as pytest fixture, this contextmanager function yields a
+    InstallEnv CRD that is deployed and registered to assisted service.
+    When exiting context the resource is deleted from service.
+    """
+    if not name:
+        name = cluster_deployment.ref.name
+
+    install_env = deploy_default_install_env(
+        kube_api_client=kube_api_client,
+        name=name,
+        cluster_deployment=cluster_deployment,
+        secret=secret,
+        label_selector=label_selector,
+        **kwargs
+    )
+    try:
+        yield install_env
+    finally:
+        delete_install_env(install_env)
+
+
