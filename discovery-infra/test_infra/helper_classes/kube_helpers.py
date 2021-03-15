@@ -270,7 +270,7 @@ class ClusterDeployment(BaseCustomResource):
             self,
             kube_api_client: ApiClient,
             name: str,
-            namespace: str = env_variables['namespace']
+            namespace: str = env_variables['namespace'],
     ):
         BaseCustomResource.__init__(self, name, namespace)
         self.crd_api = CustomObjectsApi(kube_api_client)
@@ -715,17 +715,6 @@ def delete_cluster_deployment(
     _try_to_delete_resource(cluster_deployment)
 
 
-def delete_install_env(
-        install_env: InstallEnv,
-        ignore_not_found: bool = True
-) -> None:
-    try:
-        install_env.delete()
-    except ApiException as e:
-        if not (e.reason == 'Not Found' and ignore_not_found):
-            raise
-
-
 @contextlib.contextmanager
 def cluster_deployment_context(
         kube_api_client: ApiClient,
@@ -747,6 +736,7 @@ def cluster_deployment_context(
         name,
         **kwargs
     )
+
     try:
         yield cluster_deployment
     finally:
@@ -839,6 +829,17 @@ def _create_install_env_from_attrs(
     install_env.create(cluster_deployment, secret, label_selector, **kwargs)
 
 
+def delete_install_env(
+        install_env: InstallEnv,
+        ignore_not_found: bool = True
+) -> None:
+    try:
+        install_env.delete()
+    except ApiException as e:
+        if not (e.reason == 'Not Found' and ignore_not_found):
+            raise
+
+
 @contextlib.contextmanager
 def install_env_context(
         kube_api_client: ApiClient,
@@ -847,7 +848,7 @@ def install_env_context(
         name: Optional[str] = None,
         label_selector: Optional[Dict[str, str]] = None,
         **kwargs
-) -> ContextManager[ClusterDeployment]:
+) -> ContextManager[InstallEnv]:
     """
     Used by tests as pytest fixture, this contextmanager function yields a
     InstallEnv CRD that is deployed and registered to assisted service.
