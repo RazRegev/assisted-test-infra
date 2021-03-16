@@ -481,6 +481,7 @@ class InstallEnv(BaseCustomResource):
             cluster_deployment: ClusterDeployment,
             secret: Secret,
             label_selector: Optional[Dict[str, str]] = None,
+            ignition_config_override: Optional[str] = None,
             **kwargs
     ) -> None:
         body = {
@@ -490,7 +491,8 @@ class InstallEnv(BaseCustomResource):
             'spec': {
                 'clusterRef': cluster_deployment.ref.as_dict(),
                 'pullSecretRef': secret.ref.as_dict(),
-                'agentLabelSelector': {'matchLabels': label_selector or {}}
+                'agentLabelSelector': {'matchLabels': label_selector or {}},
+                'ignitionConfigOverride': ignition_config_override or ''
             }
         }
         body['spec'].update(kwargs)
@@ -511,6 +513,7 @@ class InstallEnv(BaseCustomResource):
             cluster_deployment: Optional[ClusterDeployment],
             secret: Optional[Secret],
             label_selector: Optional[Dict[str, str]] = None,
+            ignition_config_override: Optional[str] = None,
             **kwargs
     ) -> None:
         body = {'spec': kwargs}
@@ -524,6 +527,9 @@ class InstallEnv(BaseCustomResource):
 
         if label_selector:
             spec['agentLabelSelector'] = {'matchLabels': label_selector}
+
+        if ignition_config_override:
+            spec['ignitionConfigOverride'] = ignition_config_override
 
         self.crd_api.patch_namespaced_custom_object(
             group=self._api_group,
@@ -750,6 +756,7 @@ def deploy_default_install_env(
         cluster_deployment: Optional[ClusterDeployment] = None,
         secret: Optional[Secret] = None,
         label_selector: Optional[Dict[str, str]] = None,
+        ignition_config_override: Optional[str] = None,
         **kwargs
 ) -> InstallEnv:
 
@@ -771,6 +778,7 @@ def deploy_default_install_env(
                 cluster_deployment=cluster_deployment,
                 secret=secret,
                 label_selector=label_selector,
+                ignition_config_override=ignition_config_override,
                 **kwargs
             )
     except ApiException as e:
@@ -814,6 +822,7 @@ def _create_install_env_from_attrs(
         cluster_deployment: ClusterDeployment,
         secret: Secret,
         label_selector: Optional[Dict[str, str]] = None,
+        ignition_config_override: Optional[str] = None,
         **kwargs
 ) -> None:
     if not secret:
@@ -826,7 +835,13 @@ def _create_install_env_from_attrs(
             secret=secret
         )
 
-    install_env.create(cluster_deployment, secret, label_selector, **kwargs)
+    install_env.create(
+        cluster_deployment=cluster_deployment,
+        secret=secret,
+        label_selector=label_selector,
+        ignition_config_override=ignition_config_override,
+        **kwargs
+    )
 
 
 def delete_install_env(
@@ -847,6 +862,7 @@ def install_env_context(
         secret: Secret,
         name: Optional[str] = None,
         label_selector: Optional[Dict[str, str]] = None,
+        ignition_config_override: Optional[str] = None,
         **kwargs
 ) -> ContextManager[InstallEnv]:
     """
@@ -863,6 +879,7 @@ def install_env_context(
         cluster_deployment=cluster_deployment,
         secret=secret,
         label_selector=label_selector,
+        ignition_config_override=ignition_config_override,
         **kwargs
     )
     try:
